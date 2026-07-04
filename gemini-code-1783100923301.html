@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Rota RPG</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rota RPG">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0B0E14">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #0B0E14;
+    --bg-card: #141A24;
+    --bg-card-2: #1B2230;
+    --bg-input: #10151F;
+    --border: #262E3D;
+    --text: #EDEFF4;
+    --text-muted: #8B93A7;
+    --cyan: #2EE6D6;
+    --magenta: #FF3D81;
+    --accent: #FFB23E;
+    --accent-soft: #FFD98C;
+    --gold: #F4C542;
+    --green: #36D399;
+    --red: #FF5C5C;
+  }
+  body[data-theme="azul"]{ --accent:#4FA3FF; --accent-soft:#9CCBFF; }
+  body[data-theme="verde"]{ --accent:#36D399; --accent-soft:#8CE9C4; }
+  body[data-theme="vermelho"]{ --accent:#FF5C5C; --accent-soft:#FFA3A3; }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    padding: 18px 14px 90px;
+    display: flex;
+    justify-content: center;
+  }
+  .rrpg-wrap{ width:100%; max-width:460px; }
+
+  .rrpg-topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .rrpg-title{ font-size:26px; font-weight:800; letter-spacing:1px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .rrpg-title .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); }
+  .rrpg-theme-picker{ display:flex; gap:6px; }
+  .rrpg-theme-dot{ width:16px; height:16px; border-radius:50%; border:2px solid transparent; cursor:pointer; }
+  .rrpg-theme-dot.active{ border-color:#fff; }
+
+  .rrpg-card{ background:var(--bg-card); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:14px; }
+
+  /* HUD */
+  .rrpg-hud-top{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+  .rrpg-avatar{ position:relative; width:58px; height:58px; flex:none; border-radius:16px; background:radial-gradient(circle at 30% 25%, #2A3346, #11151F); display:flex; align-items:center; justify-content:center; font-size:28px; border:1px solid var(--border); }
+  .rrpg-lvl-badge{ position:absolute; bottom:-6px; right:-6px; background:var(--accent); color:#15120A; font-weight:700; font-size:11px; padding:2px 6px; border-radius:8px; border:2px solid var(--bg-card); }
+  .rrpg-name{ font-weight:700; font-size:16px; outline:none; }
+  .rrpg-class{ color:var(--text-muted); font-size:12px; margin-top:2px; }
+  .rrpg-stat-pills{ display:flex; gap:6px; margin-top:6px; }
+  .rrpg-pill{ display:flex; align-items:center; gap:4px; background:var(--bg-card-2); border:1px solid var(--border); border-radius:999px; padding:2px 8px; font-size:11px; font-weight:700; font-family:'Courier New', monospace; }
+
+  .rrpg-bar-row{ display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+  .rrpg-bar-row:last-child{ margin-bottom:0; }
+  .rrpg-bar-icon{ width:18px; text-align:center; font-size:13px; flex:none; }
+  .rrpg-bar-track{ flex:1; height:9px; border-radius:6px; background:var(--bg-input); overflow:hidden; border:1px solid var(--border); }
+  .rrpg-bar-fill{ height:100%; border-radius:6px; transition:width .6s ease; }
+  .rrpg-bar-fill.health{ background:linear-gradient(90deg, #C21856, var(--magenta)); }
+  .rrpg-bar-fill.energy{ background:linear-gradient(90deg, #129A91, var(--cyan)); }
+  .rrpg-bar-fill.xp{ background:linear-gradient(90deg, #C97E12, var(--accent)); }
+  .rrpg-bar-num{ font-family:'Courier New', monospace; font-size:11px; color:var(--text-muted); flex:none; width:64px; text-align:right; }
+
+  /* SALDO */
+  .rrpg-saldo-card{ text-align:center; padding:22px 16px; }
+  .rrpg-saldo-card .rrpg-saldo-label{ letter-spacing:4px; font-size:13px; color:var(--text-muted); font-weight:700; text-transform:uppercase; }
+  .rrpg-saldo-num{ font-family:'Courier New', monospace; font-weight:700; font-size:42px; color:var(--accent-soft); text-shadow:0 0 18px rgba(255,178,62,.45); margin-top:4px; letter-spacing:1px; }
+  .rrpg-saldo-sub{ font-size:11px; color:var(--text-muted); margin-top:6px; font-family:'Courier New', monospace; }
+  .rrpg-saldo-pulse{ animation: rrpg-pulse .55s ease; }
+  @keyframes rrpg-pulse{ 0%{ transform:scale(1);} 30%{ transform:scale(1.06); text-shadow:0 0 30px rgba(255,178,62,.8);} 100%{ transform:scale(1);} }
+
+  .rrpg-section-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .rrpg-section-label{ font-size:12px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; }
+  .rrpg-gear-btn{ background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; padding:2px 6px; }
+
+  .rrpg-chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .rrpg-chip{ display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; border:1px solid var(--border); background:var(--bg-card-2); font-size:13px; font-weight:600; cursor:pointer; color:var(--text); }
+  .rrpg-chip.selected{ box-shadow:0 0 0 2px var(--chip-color, var(--accent)) inset; }
+  .rrpg-chip .swatch{ width:9px; height:9px; border-radius:50%; background:var(--chip-color, var(--accent)); flex:none; }
+  .rrpg-chip-add{ width:32px; height:32px; border-radius:50%; border:1px dashed var(--border); background:transparent; color:var(--text-muted); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .rrpg-chip-del{ background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;line-height:1;padding:0 0 0 2px; }
+
+  .rrpg-newapp{ display:none; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; background:var(--bg-card-2); border:1px solid var(--border); border-radius:12px; padding:10px; }
+  .rrpg-newapp.open{ display:flex; }
+  .rrpg-newapp input[type=text]{ flex:1; min-width:110px; }
+  .rrpg-swatches{ display:flex; gap:5px; }
+  .rrpg-swatch-btn{ width:18px; height:18px; border-radius:50%; border:2px solid transparent; cursor:pointer; }
+  .rrpg-swatch-btn.active{ border-color:#fff; }
+
+  .rrpg-form-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .rrpg-stepper{ display:flex; align-items:center; border:1px solid var(--border); border-radius:10px; background:var(--bg-input); overflow:hidden; }
+  .rrpg-stepper button{ width:34px; height:38px; background:none; border:none; color:var(--text); font-size:16px; cursor:pointer; }
+  .rrpg-stepper span{ font-family:'Courier New', monospace; min-width:28px; text-align:center; font-weight:700; }
+  .rrpg-value-input{ flex:1; display:flex; align-items:center; background:var(--bg-input); border:1px solid var(--border); border-radius:10px; padding:0 10px; }
+  .rrpg-value-input span{ color:var(--text-muted); font-family:'Courier New', monospace; font-size:13px; margin-right:4px; }
+  .rrpg-value-input input{ flex:1; background:none; border:none; color:var(--text); font-family:'Courier New', monospace; font-size:15px; height:38px; outline:none; }
+  input[type=text], input[type=number], select{ background:var(--bg-input); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:0 10px; height:34px; outline:none; font-family:inherit; font-size:13px; }
+
+  .rrpg-submit{ width:100%; height:44px; border-radius:12px; border:none; background:linear-gradient(135deg, var(--accent), #FF8A3D); color:#1A1208; font-weight:700; font-size:14px; cursor:pointer; }
+  .rrpg-submit:active{ transform:scale(.98); }
+  .rrpg-submit:disabled{ opacity:.5; cursor:not-allowed; }
+  .rrpg-submit-sm{ height:34px; padding:0 14px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--accent), #FF8A3D); color:#1A1208; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .rrpg-submit-sm:disabled{ opacity:.4; cursor:not-allowed; }
+  .rrpg-outline-btn{ height:34px; padding:0 14px; border-radius:10px; border:1px solid var(--border); background:var(--bg-card-2); color:var(--text); font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .rrpg-hint{ font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center; }
+
+  .rrpg-hist-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .rrpg-hist-row:last-child{ border-bottom:none; }
+  .rrpg-hist-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .rrpg-hist-main{ flex:1; min-width:0; }
+  .rrpg-hist-app{ font-size:13px; font-weight:600; }
+  .rrpg-hist-meta{ font-size:11px; color:var(--text-muted); font-family:'Courier New', monospace; }
+  .rrpg-hist-val{ text-align:right; font-family:'Courier New', monospace; font-size:13px; }
+  .rrpg-hist-val .v{ color:var(--accent-soft); font-weight:700; }
+  .rrpg-hist-val .xp{ display:block; color:var(--cyan); font-size:10px; }
+  .rrpg-empty{ text-align:center; color:var(--text-muted); font-size:12px; padding:18px 0; }
+
+  .rrpg-rest-btn{ width:100%; height:38px; border-radius:10px; background:var(--bg-card-2); border:1px solid var(--border); color:var(--cyan); font-weight:600; font-size:12px; cursor:pointer; margin-top:10px; }
+
+  /* ================== ESTILIZAÇÃO DAS METAS (IDÊNTICO À SEGUNDA IMAGEM) ================== */
+  .rrpg-goal-settings { display:none; margin-bottom:16px; }
+  .rrpg-goal-settings.open { display:block; animation: slideDown 0.3s ease; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .rrpg-goal-group { background:var(--bg-card-2); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .rrpg-goal-group h4 { margin:0 0 12px; font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:800; }
+  
+  .rrpg-goal-settings-row { display:grid; grid-template-columns: 1fr 1fr 1.3fr; gap:10px; margin-bottom:16px; }
+  .rrpg-goal-settings-row label { font-size:10px; color:var(--text-muted); display:block; margin-bottom:6px; font-weight:600; }
+  .rrpg-goal-settings-row input, .rrpg-goal-settings-row select { width:100%; height:38px; background:var(--bg-input); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:0 12px; font-family:'Segoe UI', sans-serif; font-size:13px; outline:none; }
+  
+  .rrpg-save-goals-btn { height:38px; padding:0 20px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--accent), #FF8A3D); color:#1A1208; font-weight:800; font-size:13px; cursor:pointer; width:auto; display:inline-block; }
+
+  .rrpg-goal-block{ margin-bottom:14px; }
+  .rrpg-goal-block:last-child{ margin-bottom:0; }
+  .rrpg-goal-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .rrpg-goal-name{ font-size:13px; font-weight:700; }
+  .rrpg-goal-progress-text{ font-size:11px; color:var(--text-muted); font-family:'Courier New', monospace; }
+  .rrpg-progress-track{ height:10px; border-radius:6px; background:var(--bg-input); border:1px solid var(--border); overflow:hidden; }
+  .rrpg-progress-fill{ height:100%; border-radius:6px; background:linear-gradient(90deg, #1C8F73, var(--green)); transition:width .5s ease; }
+  .rrpg-goal-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+  .rrpg-goal-reward{ font-size:11px; color:var(--gold); font-family:'Courier New', monospace; }
+  .rrpg-claim-btn{ background:var(--gold); color:#211A05; border:none; border-radius:8px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; }
+  .rrpg-claim-btn:disabled{ background:var(--bg-card-2); color:var(--text-muted); cursor:default; }
+
+  .rrpg-badge-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+  .rrpg-badge{ background:var(--bg-card-2); border:1px solid var(--border); border-radius:12px; padding:10px 6px; text-align:center; position:relative; }
+  .rrpg-badge.locked{ opacity:.35; }
+  .rrpg-badge .icon{ font-size:22px; }
+  .rrpg-badge .nm{ font-size:10px; font-weight:700; margin-top:4px; line-height:1.2; }
+  .rrpg-badge .ds{ font-size:9px; color:var(--text-muted); margin-top:2px; line-height:1.2; }
+
+  .rrpg-shop-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .rrpg-shop-row:last-child{ border-bottom:none; }
+  .rrpg-shop-name{ flex:1; font-size:13px; font-weight:600; }
+  .rrpg-shop-cost{ font-size:12px; color:var(--gold); font-family:'Courier New', monospace; font-weight:700; margin-right:4px; }
+  .rrpg-shop-del{ background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; }
+  .rrpg-newreward{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+
+  .rrpg-chart-toggle{ display:flex; gap:6px; }
+  .rrpg-chart-toggle button{ background:var(--bg-card-2); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:700; }
+  .rrpg-chart-toggle button.active{ color:var(--bg); background:var(--accent-soft); border-color:transparent; }
+  .rrpg-chart{ display:flex; align-items:flex-end; gap:8px; height:120px; margin-top:14px; padding:0 2px; }
+  .rrpg-chart-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .rrpg-chart-bar{ width:100%; max-width:28px; border-radius:6px 6px 3px 3px; background:linear-gradient(180deg, var(--accent-soft), var(--accent)); min-height:3px; transition:height .5s ease; }
+  .rrpg-chart-val{ font-size:9px; color:var(--text-muted); margin-bottom:4px; font-family:'Courier New', monospace; }
+  .rrpg-chart-lbl{ font-size:10px; color:var(--text-muted); margin-top:6px; }
+
+  .rrpg-shift-active{ text-align:center; padding:6px 0 2px; }
+  .rrpg-shift-timer{ font-family:'Courier New', monospace; font-size:32px; font-weight:700; color:var(--cyan); }
+  .rrpg-shift-sub{ display:flex; justify-content:center; gap:18px; margin:10px 0 14px; font-size:12px; color:var(--text-muted); font-family:'Courier New', monospace; }
+
+  .rrpg-backup-row{ display:flex; gap:10px; }
+  .rrpg-backup-row button{ flex:1; }
+
+  .rrpg-fin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .rrpg-fin-cell{ background:var(--bg-card-2); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+  .rrpg-fin-cell.wide{ grid-column: span 2; }
+  .rrpg-fin-cell .l{ font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+  .rrpg-fin-cell .v{ font-family:'Courier New', monospace; font-weight:700; font-size:17px; margin-top:3px; }
+  .rrpg-fin-cell .v.pos{ color:var(--green); }
+  .rrpg-fin-cell .v.neg{ color:var(--red); }
+  .rrpg-fin-cell .v.acc{ color:var(--accent-soft); }
+
+  .rrpg-list-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .rrpg-list-row:last-child{ border-bottom:none; }
+  .rrpg-list-row .nm{ flex:1; font-size:13px; font-weight:600; }
+  .rrpg-list-row .sub{ font-size:10px; color:var(--text-muted); font-family:'Courier New', monospace; }
+  .rrpg-list-row .vv{ font-family:'Courier New', monospace; font-size:13px; font-weight:700; text-align:right; }
+  
+  .rrpg-newlist{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .rrpg-newlist input{ flex:1; min-width:90px; }
+  .rrpg-newlist select{ flex:1; min-width:90px; }
+
+  .rrpg-tab-switch{ display:flex; gap:6px; margin-bottom:12px; }
+  .rrpg-tab-switch button{ flex:1; background:var(--bg-card-2); border:1px solid var(--border); color:var(--text-muted); border-radius:10px; padding:8px 4px; font-size:11px; font-weight:700; cursor:pointer; }
+  .rrpg-tab-switch button.active{ color:var(--bg); background:var(--accent-soft); border-color:transparent; }
+
+  .rrpg-compare-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
+  .rrpg-compare-row:last-child{ border-bottom:none; }
+  .rrpg-compare-label{ font-size:12px; color:var(--text-muted); }
+  .rrpg-compare-vals{ text-align:right; font-family:'Courier New', monospace; font-size:12px; }
+  .rrpg-compare-delta{ font-size:11px; font-weight:700; margin-left:6px; }
+  .rrpg-compare-delta.up{ color:var(--green); }
+  .rrpg-compare-delta.down{ color:var(--red); }
+
+  .rrpg-navbar{
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg-card); border-top: 1px solid var(--border);
+    display: flex; z-index: 40;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .rrpg-navbar button{ flex: 1; background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px 8px; font-size: 10px; font-weight: 700; cursor: pointer; }
+  .rrpg-navbar button .ic{ font-size: 19px; }
+  .rrpg-navbar button.active{ color: var(--accent-soft); }
+
+  .rrpg-details-group{ background:var(--bg-card-2); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; overflow:hidden; }
+  .rrpg-details-group summary{ padding:12px; font-size:12px; font-weight:700; color:var(--text); cursor:pointer; outline:none; user-select:none; }
+  .rrpg-details-group summary::-webkit-details-marker { display:none; }
+  .rrpg-details-content{ padding:0 12px 12px; border-top:1px solid var(--border); }
+  
+  .rrpg-rank-item{ display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .rrpg-rank-item:last-child{ border-bottom:none; }
+  .rrpg-rank-pos{ font-size:12px; font-weight:800; color:var(--accent-soft); width:18px; text-align:center; }
+  .rrpg-rank-desc{ flex:1; font-size:12px; }
+  .rrpg-rank-val{ font-family:'Courier New', monospace; font-size:13px; font-weight:700; }
+
+  /* MISSÕES CSS */
+  .rrpg-mission-card { background: var(--bg-card-2); border: 1px solid var(--border); padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; position:relative;}
+  .rrpg-mission-card.completed { opacity: 0.5; filter: grayscale(1); }
+  .rrpg-mission-info { flex: 1; min-width:0; }
+  .rrpg-mission-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rrpg-mission-rewards { font-size: 11px; color: var(--text-muted); font-family: 'Courier New', monospace; }
+  .rrpg-checkbox { width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--accent); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: transparent; font-weight: bold; flex:none; font-size:16px;}
+  .rrpg-mission-card.completed .rrpg-checkbox { background: var(--accent); color: var(--bg); }
+  .rrpg-mission-del { position:absolute; top:8px; right:8px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:4px;}
+  .rrpg-cat-badge { display:inline-block; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;}
+  .rrpg-mission-group-separator { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 12px 0 8px; }
+  .rrpg-mission-category-header { margin: 6px 0 8px; }
+</style>
+</head>
+<body>
+<div class="rrpg-wrap" id="app"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = "rota-rpg-state-v5";
+  const OLD_KEYS = ["rota-rpg-state-v4", "rota-rpg-state-v3", "rota-rpg-state-v2", "rota-rpg-state-v1"];
+  const SWATCHES = ["#EA1D2C","#FFD400","#2EE6D6","#FF3D81","#FFB23E","#7C5CFC","#36D399","#4FA3FF"];
+  const WEEKDAY_SHORT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const MONTH_NAMES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const BILL_CATEGORIES = ['Assinatura','Alimentação','Cartão de crédito','Moradia','Transporte','Saúde','Outros'];
+  const INCOME_CATEGORIES = ['Salário', 'Renda Extra', 'Outras'];
+  const THEMES = [
+    { id:'amber', color:'#FFB23E' },
+    { id:'azul', color:'#4FA3FF' },
+    { id:'verde', color:'#36D399' },
+    { id:'vermelho', color:'#FF5C5C' },
+  ];
+
+  const ACHIEVEMENTS = [
+    { id:'first_route', cat:'delivery', name:'Primeira Rota', desc:'Registre 1 rota', icon:'🎯', reward:10, check: s => s.totalRoutes >= 1 },
+    { id:'routes_100', cat:'delivery', name:'100 entregas', desc:'Faça 100 entregas', icon:'💯', reward:50, check: s => s.totalRoutes >= 100 },
+    { id:'routes_500', cat:'delivery', name:'500 entregas', desc:'Faça 500 entregas', icon:'👑', reward:150, check: s => s.totalRoutes >= 500 },
+    { id:'routes_1000', cat:'delivery', name:'1000 entregas', desc:'Lenda das ruas', icon:'🏆', reward:300, check: s => s.totalRoutes >= 1000 },
+    { id:'day_200', cat:'delivery', name:'Dia de Ouro (R$200)', desc:'Faça R$200 num dia', icon:'💵', reward:50, check: s => s.maxDayEarned >= 200 },
+    { id:'day_300', cat:'delivery', name:'Dia de Diamante (R$300)', desc:'Faça R$300 num dia', icon:'💎', reward:100, check: s => s.maxDayEarned >= 300 },
+    { id:'km_1000', cat:'delivery', name:'Ciclista de Aço', desc:'Pedale 1000km', icon:'🚴', reward:100, check: s => s.totalKm >= 1000 },
+    { id:'earn_10000', cat:'delivery', name:'Os primeiros R$10k', desc:'Acumule 10.000 ganhos', icon:'💰', reward:500, check: s => s.totalEarned >= 10000 },
+    { id:'yt_100', cat:'youtube', name:'100 inscritos', desc:'O começo de tudo', icon:'🎬', reward:50, manual:true },
+    { id:'yt_500', cat:'youtube', name:'500 inscritos', desc:'Metade do caminho', icon:'🎬', reward:100, manual:true },
+    { id:'yt_1000', cat:'youtube', name:'1.000 inscritos', desc:'Comunidade crescendo', icon:'🎥', reward:200, manual:true },
+    { id:'yt_10k', cat:'youtube', name:'10.000 inscritos', desc:'Influenciador', icon:'🌟', reward:500, manual:true },
+    { id:'yt_v1k', cat:'youtube', name:'1.000 visualizações', desc:'Primeiro marco', icon:'👀', reward:50, manual:true },
+    { id:'yt_v10k', cat:'youtube', name:'10.000 visualizações', desc:'Alcançando massas', icon:'🔥', reward:100, manual:true },
+    { id:'yt_viral', cat:'youtube', name:'Vídeo Viral', desc:'O algoritmo te notou', icon:'🚀', reward:200, manual:true },
+    { id:'yt_monet', cat:'youtube', name:'Primeiro AdSense', desc:'Canal monetizado!', icon:'💲', reward:300, manual:true },
+    { id:'saude_7d', cat:'saude', name:'Atleta de 1 semana', desc:'7 dias seguidos de treino', icon:'🔋', reward:50, manual:true },
+    { id:'saude_30d', cat:'saude', name:'Hábito formado', desc:'30 dias seguidos de treino', icon:'🔥', reward:150, manual:true },
+    { id:'saude_p5', cat:'saude', name:'Secando (-5kg)', desc:'Perder 5kg', icon:'⚖️', reward:100, manual:true },
+    { id:'saude_p10', cat:'saude', name:'Transformação (-10kg)', desc:'Perder 10kg', icon:'🏋️', reward:200, manual:true },
+    { id:'saude_100t', cat:'saude', name:'100 Treinos', desc:'Sua saúde agradece', icon:'💪', reward:200, manual:true },
+    { id:'saude_365t', cat:'saude', name:'1 Ano de Suor', desc:'365 treinos concluídos', icon:'🏆', reward:500, manual:true },
+  ];
+
+  const EVENTS = [
+    { icon:'💸', name:'Gorjeta surpresa', msg:'Cliente deu uma gorjeta extra', gold:15 },
+    { icon:'🟢', name:'Trânsito tranquilo', msg:'Rota rápida, sobrou energia', energy:10 },
+    { icon:'😊', name:'Cliente simpático', msg:'Avaliação ótima', xp:8 },
+    { icon:'🍀', name:'Rota da sorte', msg:'Tudo deu certo hoje', gold:10, xp:5 },
+    { icon:'🌧️', name:'Chuva forte', msg:'Pegou chuva no caminho', energy:-10 },
+    { icon:'🚧', name:'Trânsito travado', msg:'Perdeu tempo parado', energy:-8 },
+    { icon:'🔧', name:'Pneu furou', msg:'Precisou parar pra resolver', energy:-15, health:-5 },
+  ];
+
+  function brl(n){ return "R$ " + (Math.round((n||0)*100)/100).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function addDaysStr(dateStr, n){ const d = new Date(dateStr+"T00:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+  function weekKey(dateStr){ const d = new Date(dateStr+"T00:00:00"); const day = (d.getDay()+6)%7; d.setDate(d.getDate()-day); return d.toISOString().slice(0,10); }
+  function weekdayShort(ds){ return WEEKDAY_SHORT[new Date(ds+"T00:00:00").getDay()]; }
+  function fmtDate(iso){
+    const d = new Date(iso); const t = todayStr(); const y = addDaysStr(t, -1); const iso2 = iso.slice(0,10);
+    if(iso2===t) return "Hoje " + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    if(iso2===y) return "Ontem " + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return d.toLocaleDateString('pt-BR');
+  }
+  function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  function uid(){ return Date.now() + "-" + Math.random().toString(36).slice(2,7); }
+  function getVehicleEmoji(level){
+    if (level >= 50) return '🚀';
+    if (level >= 35) return '🚚';
+    if (level >= 20) return '🚗';
+    if (level >= 10) return '🏍️';
+    if (level >= 5) return '🛵';
+    return '🚲';
+  }
+  function formatElapsed(startIso){
+    const ms = Date.now() - new Date(startIso).getTime();
+    const totalMin = Math.max(0, Math.floor(ms/60000));
+    const h = Math.floor(totalMin/60); const m = totalMin%60; const s = Math.floor((ms%60000)/1000);
+    return (h>0 ? String(h).padStart(2,'0')+':' : '') + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+  function ymPrev(ym){ const d = new Date(ym+"-01T00:00:00"); d.setDate(0); return d.toISOString().slice(0,7); }
+
+  const DEFAULT_FINANCE_CATEGORIES = [
+    { id: 'combustivel', name: 'Combustível', color: '#F59E0B' },
+    { id: 'alimentacao', name: 'Alimentação', color: '#EF4444' },
+    { id: 'internet', name: 'Internet', color: '#3B82F6' },
+    { id: 'lazer', name: 'Lazer', color: '#8B5CF6' },
+    { id: 'outros', name: 'Outros', color: '#6B7280' }
+  ];
+
+  function defaultState(){
+    return {
+      character: {
+        name:"Motoboy Lendário", level:1, xp:0, xpToNext:100,
+        health:50, maxHealth:50, energy:100, maxEnergy:100,
+        saldo:0, gold:0, streak:0, lastRouteLogDate: null, maxDayEarned: 0
+      },
+      apps: [ { id:"ifood", name:"iFood", color:"#EA1D2C" }, { id:"99", name:"99", color:"#FFD400" } ],
+      history: [], lastActiveDate: todayStr(),
+      goals: { daily: { metric:'routes', target:5, reward:20 }, weekly: { metric:'routes', target:25, reward:100 } },
+      claims: { dailyDate: null, weeklyKey: null },
+      achievements: { unlocked: [] },
+      rewards: [], currentShift: null, shifts: [], expenses: [],
+      settings: { theme: 'amber' },
+      finance: {
+        bankAccounts: [],
+        cards: [],
+        investments: [],
+        incomes: [],
+        bills: [],
+        categories: DEFAULT_FINANCE_CATEGORIES.map(c => ({ ...c })),
+        savingsGoal: 100,
+        monthlyBudget: 1000
+      },
+      missionCategories: [
+        { id: 'delivery', name: 'Delivery', color: '#FFB23E' },
+        { id: 'youtube', name: 'YouTube', color: '#EA1D2C' },
+        { id: 'saude', name: 'Saúde', color: '#36D399' }
+      ],
+      missions: [
+        { id:uid(), categoryId:'youtube', title:'Gravar 1 vídeo', xp:50, gold:10, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'fácil', period:'diária' },
+        { id:uid(), categoryId:'youtube', title:'Publicar 2 shorts', xp:30, gold:5, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'médio', period:'diária' },
+        { id:uid(), categoryId:'youtube', title:'Responder comentários', xp:10, gold:2, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'fácil', period:'diária' },
+        { id:uid(), categoryId:'saude', title:'Treinar hoje', xp:50, gold:10, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'médio', period:'diária' },
+        { id:uid(), categoryId:'saude', title:'Fazer cardio', xp:30, gold:5, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'fácil', period:'diária' },
+        { id:uid(), categoryId:'saude', title:'Dormir 8h', xp:20, gold:5, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'fácil', period:'diária' },
+        { id:uid(), categoryId:'delivery', title:'Fazer 10 entregas', xp:50, gold:10, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'médio', period:'diária' },
+        { id:uid(), categoryId:'delivery', title:'Trabalhar no pico', xp:30, gold:10, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'difícil', period:'semanal' },
+        { id:uid(), categoryId:'delivery', title:'Ganhar R$150', xp:50, gold:10, lastCompletedDate:null, type:'standard', progress:0, target:1, difficulty:'difícil', period:'semanal' },
+        { id:uid(), categoryId:'delivery', title:'Manter streak de 3 dias', xp:40, gold:8, lastCompletedDate:null, type:'streak', progress:0, target:3, metric:'streak', difficulty:'médio', period:'semanal' },
+        { id:uid(), categoryId:'delivery', title:'Ganhar R$200 em entregas', xp:60, gold:12, lastCompletedDate:null, type:'progress', progress:0, target:200, metric:'value', difficulty:'difícil', period:'semanal' }
+      ]
+    };
+  }
+
+  function migrateState(s){
+    const d = defaultState();
+    s.character = Object.assign({}, d.character, s.character || {});
+    if (s.character.maxDayEarned === undefined) s.character.maxDayEarned = 0;
+    s.apps = (s.apps && s.apps.length) ? s.apps : d.apps;
+    s.history = s.history || [];
+    s.history.forEach(h => { if(h.gold===undefined) h.gold=0; if(h.km===undefined) h.km=0; if(h.elevation===undefined) h.elevation=0; });
+    s.lastActiveDate = s.lastActiveDate || d.lastActiveDate;
+    s.goals = s.goals || {};
+    s.goals.daily = Object.assign({}, d.goals.daily, s.goals.daily || {});
+    s.goals.weekly = Object.assign({}, d.goals.weekly, s.goals.weekly || {});
+    s.claims = Object.assign({}, d.claims, s.claims || {});
+    s.achievements = s.achievements || {};
+    s.achievements.unlocked = s.achievements.unlocked || [];
+    s.rewards = s.rewards || [];
+    s.currentShift = s.currentShift || null;
+    s.shifts = s.shifts || [];
+    s.expenses = s.expenses || [];
+    s.settings = Object.assign({}, d.settings, s.settings || {});
+    s.finance = s.finance || {};
+    s.finance.bankAccounts = s.finance.bankAccounts || [];
+    s.finance.cards = s.finance.cards || [];
+    s.finance.investments = s.finance.investments || [];
+    s.finance.incomes = s.finance.incomes || [];
+    s.finance.bills = s.finance.bills || [];
+    s.finance.categories = (s.finance.categories && s.finance.categories.length)
+      ? s.finance.categories
+      : DEFAULT_FINANCE_CATEGORIES.map(c => ({ ...c }));
+    s.finance.savingsGoal = (s.finance.savingsGoal === undefined || s.finance.savingsGoal === null)
+      ? 100
+      : Number(s.finance.savingsGoal) || 100;
+    s.finance.monthlyBudget = (s.finance.monthlyBudget === undefined || s.finance.monthlyBudget === null)
+      ? 1000
+      : Number(s.finance.monthlyBudget) || 1000;
+    if (!s.missionCategories) s.missionCategories = d.missionCategories;
+    if (!s.missions) s.missions = d.missions;
+    s.missions.forEach(m => { if (!m.type) m.type = 'standard'; if (m.progress === undefined) m.progress = 0; if (m.target === undefined) m.target = 1; if (!m.metric) m.metric = 'daily'; if (!m.difficulty) m.difficulty = 'fácil'; if (!m.period) m.period = 'diária'; });
+    return s;
+  }
+
+  function loadState(){
+    let s = null;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) s = JSON.parse(raw);
+      else {
+        for (const k of OLD_KEYS) {
+          const oldRaw = localStorage.getItem(k);
+          if (oldRaw) { s = JSON.parse(oldRaw); break; }
+        }
+        // Render chart if we're currently viewing financial reports
+        if (activeTab === 'financeiro' && finSubTab === 'relatorios') setTimeout(renderFinanceChart, 80);
+      }
+    } catch(e){ s = null; }
+    if (!s) s = defaultState();
+    s = migrateState(s);
+
+    const t = todayStr();
+    let banner = null;
+    if (s.lastActiveDate && s.lastActiveDate < t) {
+      const diffDays = Math.round((new Date(t) - new Date(s.lastActiveDate)) / 86400000);
+      if (diffDays >= 1) {
+        const before = s.character.health;
+        const dmg = diffDays * 8;
+        s.character.health = Math.max(0, s.character.health - dmg);
+        s.lastActiveDate = t;
+        if (before > 0 && before !== s.character.health) {
+          banner = diffDays + " dia(s) sem registrar. Você perdeu " + (before - s.character.health) + " de vida.";
+        }
+      }
+    }
+    return { state: s, banner };
+  }
+
+  function saveState(s){ try{localStorage.setItem(STORAGE_KEY, JSON.stringify(s));}catch(e){} }
+
+  let { state, banner } = loadState();
+  let selectedApp = state.apps.length ? state.apps[0].id : null;
+  let routes = 1, valueInput = "", kmInput = "", elevInput = "";
+  let newAppOpen = false, newAppColor = SWATCHES[0], saldoPulse = false;
+  let toast = null, toastQueue = [], toastTimer = null, pulseTimer = null;
+  let goalsEditOpen = false, chartMetric = 'value';
+  let savingsGoalEditOpen = false;
+  let newRewardName = "", newRewardCost = "";
+  let newFinanceCatColor = SWATCHES[0];
+  let shiftInterval = null;
+  let financeChart = null;
+  let financeOverviewChart = null;
+  
+  let activeTab = 'personagem'; 
+  let finSubTab = 'resumo';
+  let historyFilterApp = 'all';
+
+  let missionSubTab = 'diarias';
+  let missionFilterCat = 'all';
+  let newMissionCat = "youtube";
+  let newCatColor = SWATCHES[0];
+
+  function persist(){ saveState(state); }
+  function pushToast(t){ toastQueue.push(t); if (!toast) showNextToast(); }
+  function showNextToast(){
+    if (toastQueue.length === 0) { toast = null; render(); return; }
+    toast = toastQueue.shift(); render();
+    clearTimeout(toastTimer); toastTimer = setTimeout(showNextToast, 2400);
+  }
+
+  function addXP(char, amount){
+    if (!amount) return false;
+    char.xp += amount;
+    let leveled = false;
+    while (char.xp >= char.xpToNext) {
+      char.xp -= char.xpToNext; char.level += 1; char.xpToNext = Math.round(char.xpToNext * 1.18);
+      char.maxHealth += 4; char.maxEnergy += 4; char.health = char.maxHealth; char.energy = char.maxEnergy;
+      leveled = true;
+    }
+    if (char.xp < 0) char.xp = 0;
+    return leveled;
+  }
+
+  function computeStats(){
+    const totalRoutes = state.history.reduce((s,h)=>s+h.routes,0);
+    const totalEarned = state.history.reduce((s,h)=>s+h.value,0);
+    const totalKm = state.history.reduce((s,h)=>s+(h.km||0),0);
+    return { totalRoutes, totalEarned, totalKm, maxDayEarned: state.character.maxDayEarned };
+  }
+
+  function checkAchievements(){
+    const stats = computeStats();
+    const unlocked = [];
+    ACHIEVEMENTS.filter(a => !a.manual).forEach(a => {
+      if (!state.achievements.unlocked.includes(a.id) && a.check(stats)) {
+        state.achievements.unlocked.push(a.id);
+        state.character.gold += a.reward;
+        unlocked.push(a);
+      }
+    });
+    return unlocked;
+  }
+
+  function handleClaimManualAchievement(id){
+    const a = ACHIEVEMENTS.find(x => x.id === id);
+    if (!a || state.achievements.unlocked.includes(id)) return;
+    state.achievements.unlocked.push(id);
+    state.character.gold += a.reward;
+    persist();
+    pushToast({ title: "🏆 " + a.name, sub: "+" + a.reward + " 🪙" });
+    render();
+  }
+
+  function dailyProgress(dateStr){
+    const entries = state.history.filter(h => h.date.slice(0,10) === dateStr);
+    return { routes: entries.reduce((s,h)=>s+h.routes,0), value: entries.reduce((s,h)=>s+h.value,0) };
+  }
+  function getCharacterOverview(){
+    const today = todayStr();
+    const todayProgress = dailyProgress(today);
+    return {
+      todayRoutes: todayProgress.routes,
+      todayValue: todayProgress.value,
+      streak: state.character.streak || 0,
+      bestDay: state.character.maxDayEarned || 0,
+      nextLevelNeed: Math.max(1, state.character.xpToNext - state.character.xp)
+    };
+  }
+  function weeklyProgress(wk){
+    const entries = state.history.filter(h => weekKey(h.date.slice(0,10)) === wk);
+    return { routes: entries.reduce((s,h)=>s+h.routes,0), value: entries.reduce((s,h)=>s+h.value,0) };
+  }
+  function getDailyClaimInfo(){
+    const today = todayStr(); const p = dailyProgress(today); const goal = state.goals.daily;
+    const val = goal.metric === 'routes' ? p.routes : p.value;
+    return { done: val >= goal.target, alreadyClaimed: state.claims.dailyDate === today, progress: val, target: goal.target, reward: goal.reward, metric: goal.metric };
+  }
+  function getWeeklyClaimInfo(){
+    const wk = weekKey(todayStr()); const p = weeklyProgress(wk); const goal = state.goals.weekly;
+    const val = goal.metric === 'routes' ? p.routes : p.value;
+    return { done: val >= goal.target, alreadyClaimed: state.claims.weeklyKey === wk, progress: val, target: goal.target, reward: goal.reward, metric: goal.metric, wk };
+  }
+
+  function computeMonthStats(ym){
+    ym = ym || todayStr().slice(0,7);
+    const entries = state.history.filter(h => h.date.slice(0,7) === ym);
+    const byApp = {};
+    entries.forEach(h => {
+      if (!byApp[h.appId]) byApp[h.appId] = { name: h.appName, color: h.appColor, routes: 0, value: 0 };
+      byApp[h.appId].routes += h.routes; byApp[h.appId].value += h.value;
+    });
+    const totalRoutes = entries.reduce((s,h)=>s+h.routes,0);
+    const totalValue = entries.reduce((s,h)=>s+h.value,0);
+    const totalKm = entries.reduce((s,h)=>s+(h.km||0),0);
+    const totalElev = entries.reduce((s,h)=>s+(h.elevation||0),0);
+    const lucroPorKm = totalKm > 0 ? (totalValue / totalKm) : 0;
+    
+    let bestAppId = null, bestVal = -1;
+    Object.keys(byApp).forEach(id => { if (byApp[id].value > bestVal) { bestVal = byApp[id].value; bestAppId = id; } });
+    
+    return { ym, byApp, totalRoutes, totalValue, bestAppId, totalKm, totalElev, lucroPorKm };
+  }
+  function computeMonthExpenses(ym){ ym = ym || todayStr().slice(0,7); return state.expenses.filter(e => e.date.slice(0,7) === ym).reduce((s,e)=>s+e.amount,0); }
+  function computeMonthBills(ym){ ym = ym || todayStr().slice(0,7); return state.finance.bills.filter(b => b.date.slice(0,7) === ym).reduce((s,b)=>s+b.amount, 0); }
+  function computeMonthIncomes(ym){ ym = ym || todayStr().slice(0,7); return state.finance.incomes.filter(i => i.date.slice(0,7) === ym).reduce((s,i)=>s+i.amount,0); }
+
+  function getMonthlyBudgetStatus(ym){
+    ym = ym || todayStr().slice(0,7);
+    const budget = Math.max(0, Number(state.finance.monthlyBudget) || 0);
+    const spent = computeMonthExpenses(ym) + computeMonthBills(ym);
+    const remaining = Math.max(0, budget - spent);
+    const progress = budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
+    return { budget, spent, remaining, progress, isOver: budget > 0 && spent > budget };
+  }
+
+  function computeWeekSummary(wk){
+    const receitas = state.finance.incomes.filter(i => weekKey(i.date.slice(0,10)) === wk).reduce((s,i)=>s+i.amount,0);
+    const despesasOper = state.expenses.filter(e => weekKey(e.date.slice(0,10)) === wk).reduce((s,e)=>s+e.amount,0);
+    const contasFixas = state.finance.bills.filter(b => weekKey(b.date.slice(0,10)) === wk).reduce((s,b)=>s+b.amount,0);
+    const despesas = despesasOper + contasFixas;
+    const lucroLiquido = receitas - despesas;
+    const topExpenseItem = computeTopExpenseItemForWeek(wk);
+    const savingsTarget = Math.max(0, Number(state.finance.savingsGoal) || 0);
+    const savingsProgress = savingsTarget > 0 ? Math.min(100, Math.max(0, Math.round((Math.max(0, lucroLiquido) / savingsTarget) * 100))) : 0;
+    return { receitas, despesas, lucroLiquido, topExpenseItem, savingsTarget, savingsProgress, savingsRemaining: Math.max(0, savingsTarget - Math.max(0, lucroLiquido)) };
+  }
+
+  function computeTopExpenseItemForWeek(wk){
+    const totals = {};
+    const add = (name, amount) => {
+      const key = String(name || '').trim().toLowerCase();
+      if (!key) return;
+      if (!totals[key]) totals[key] = { name: String(name || '').trim(), total: 0, count: 0 };
+      totals[key].total += Number(amount) || 0;
+      totals[key].count += 1;
+    };
+    state.expenses.filter(e => weekKey(e.date.slice(0,10)) === wk).forEach(e => add(e.description, e.amount));
+    (state.finance.bills || []).filter(b => weekKey(b.date.slice(0,10)) === wk).forEach(b => add(b.name || b.description, b.amount));
+    const items = Object.values(totals).filter(i => i.total > 0);
+    if (!items.length) return null;
+    items.sort((a,b) => b.total - a.total);
+    return items[0];
+  }
+
+  function getFinanceHistoryEntries(){
+    const entries = [];
+    state.expenses.forEach(e => entries.push({ id: e.id, type: 'expense', date: e.date, description: e.description, amount: Number(e.amount) || 0, category: e.category || 'Outros' }));
+    state.finance.bills.forEach(b => entries.push({ id: b.id, type: 'bill', date: b.date, description: b.name || b.description || 'Conta', amount: Number(b.amount) || 0, category: b.category || 'Outros' }));
+    entries.sort((a,b) => new Date(b.date) - new Date(a.date));
+    return entries;
+  }
+
+  function getFinanceHistoryGroupedEntries(){
+    const entries = getFinanceHistoryEntries();
+    const today = todayStr();
+    const thisWeek = weekKey(today);
+    const thisMonth = today.slice(0,7);
+    const groups = { today: [], week: [], month: [], older: [] };
+    entries.forEach(entry => {
+      const entryDate = entry.date.slice(0,10);
+      if (entryDate === today) {
+        groups.today.push(entry);
+      } else if (entryDate.slice(0,7) === thisMonth) {
+        if (weekKey(entryDate) === thisWeek) groups.week.push(entry);
+        else groups.month.push(entry);
+      } else {
+        groups.older.push(entry);
+      }
+    });
+    return groups;
+  }
+
+  function getFinanceCategories(){
+    return (state.finance.categories || []).filter(Boolean).length ? (state.finance.categories || []) : DEFAULT_FINANCE_CATEGORIES.map(c => ({ ...c }));
+  }
+
+  function addFinanceCategory(name, color){
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) return false;
+    state.finance.categories = state.finance.categories || [];
+    state.finance.categories.push({ id: 'cat_' + uid(), name: trimmedName, color: color || newFinanceCatColor || SWATCHES[0] });
+    persist();
+    return true;
+  }
+
+  function removeMissionCategory(categoryId){
+    if (!categoryId) return false;
+    const before = state.missionCategories.length;
+    state.missionCategories = state.missionCategories.filter(c => c.id !== categoryId);
+    if (!state.missionCategories.length) {
+      state.missionCategories = [{ id: 'cat_outros', name: 'Outros', color: '#6B7280' }];
+    }
+    const fallbackCategoryId = state.missionCategories[0].id;
+    state.missions.forEach(m => { if (m.categoryId === categoryId) m.categoryId = fallbackCategoryId; });
+    if (missionFilterCat === categoryId) missionFilterCat = 'all';
+    if (newMissionCat === categoryId) newMissionCat = fallbackCategoryId;
+    persist();
+    return before !== state.missionCategories.length;
+  }
+
+  function removeFinanceCategory(categoryId){
+    if (!categoryId) return false;
+    state.finance.categories = (state.finance.categories || []).filter(c => c.id !== categoryId);
+    if (!state.finance.categories.length) {
+      state.finance.categories = DEFAULT_FINANCE_CATEGORIES.map(c => ({ ...c }));
+    }
+    const fallbackCategory = (state.finance.categories[0] && (state.finance.categories[0].name || state.finance.categories[0].id)) || 'Outros';
+    state.expenses.forEach(e => { if (String(e.category || '').trim() === String(categoryId)) e.category = fallbackCategory; });
+    state.finance.bills.forEach(b => { if (String(b.category || '').trim() === String(categoryId)) b.category = fallbackCategory; });
+    persist();
+    return true;
+  }
+
+  function getFinanceCategoryLabel(value){
+    const cats = getFinanceCategories();
+    const raw = String(value || '').trim();
+    if (!raw) return 'Outros';
+    const found = cats.find(c => c.id === raw || c.name === raw || (c.name || '').toLowerCase() === raw.toLowerCase());
+    return found ? found.name : raw;
+  }
+
+  function renderFinanceCategoryOptions(selectedValue){
+    const cats = getFinanceCategories();
+    const selected = String(selectedValue || '').trim();
+    return cats.map(c => '<option value="' + esc(c.name) + '"' + ((selected === c.name || selected === c.id) ? ' selected' : '') + '>' + esc(c.name) + '</option>').join('');
+  }
+
+  function computeFinanceCategoryBreakdown(ym){
+    ym = ym || todayStr().slice(0,7);
+    const totals = {};
+    const addEntry = (entry) => {
+      const rawCategory = entry && (entry.category || entry.categoryId || 'Outros');
+      const key = String(rawCategory || '').trim() || 'Outros';
+      const label = getFinanceCategoryLabel(key);
+      if (!totals[key]) totals[key] = { key, label, total: 0, count: 0 };
+      totals[key].total += Number(entry.amount) || 0;
+      totals[key].count += 1;
+    };
+    state.expenses.filter(e => e.date.slice(0,7) === ym).forEach(addEntry);
+    (state.finance.bills || []).filter(b => b.date.slice(0,7) === ym).forEach(addEntry);
+    return Object.values(totals).filter(i => i.total > 0).sort((a,b) => b.total - a.total);
+  }
+  
+  function computeTopExpenseItem(ym){
+    ym = ym || todayStr().slice(0,7);
+    const totals = {};
+    const add = (name, amount) => {
+      const key = String(name || '').trim().toLowerCase();
+      if (!key) return;
+      if (!totals[key]) totals[key] = { name: String(name || '').trim(), total: 0, count: 0 };
+      totals[key].total += Number(amount) || 0;
+      totals[key].count += 1;
+    };
+
+    state.expenses.filter(e => e.date.slice(0,7) === ym).forEach(e => add(e.description, e.amount));
+    (state.finance.bills || []).filter(b => b.date.slice(0,7) === ym).forEach(b => add(b.name || b.description, b.amount));
+
+    const items = Object.values(totals).filter(i => i.total > 0);
+    if (!items.length) return null;
+    items.sort((a,b) => b.total - a.total);
+    return items[0];
+  }
+
+  function getFinanceAlerts(){
+    const week = weekKey(todayStr());
+    const weekSummary = computeWeekSummary(week);
+    const alerts = [];
+    const budgetStatus = getMonthlyBudgetStatus();
+    if (budgetStatus.budget > 0 && budgetStatus.progress >= 80) {
+      alerts.push({ type: 'budget', title: 'Você está perto de estourar o orçamento', message: 'Já gastou ' + brl(budgetStatus.spent) + ' de ' + brl(budgetStatus.budget) + ' do orçamento mensal.' });
+    }
+    const fuelSpend = state.expenses.filter(e => weekKey(e.date.slice(0,10)) === week && String(e.category || '').toLowerCase().includes('combust')).reduce((s,e)=>s+Number(e.amount||0),0) + state.finance.bills.filter(b => weekKey(b.date.slice(0,10)) === week && String(b.category || '').toLowerCase().includes('combust')).reduce((s,b)=>s+Number(b.amount||0),0);
+    if (fuelSpend > 0 && fuelSpend >= Math.max(50, weekSummary.receitas * 0.15)) {
+      alerts.push({ type: 'fuel', title: 'Seu gasto de combustível está alto', message: 'Você gastou ' + brl(fuelSpend) + ' em combustível esta semana.' });
+    }
+    return alerts;
+  }
+
+  function getFinanceRanking(ym){
+    ym = ym || todayStr().slice(0,7);
+    const items = [];
+    const addItem = (name, amount, category) => {
+      const key = String(name || '').trim().toLowerCase();
+      if (!key) return;
+      const existing = items.find(i => i.key === key);
+      if (existing) {
+        existing.total += Number(amount) || 0;
+        existing.count += 1;
+      } else {
+        items.push({ key, name: String(name || '').trim(), total: Number(amount) || 0, count: 1, category: category || 'Outros' });
+      }
+    };
+    state.expenses.filter(e => e.date.slice(0,7) === ym).forEach(e => addItem(e.description, e.amount, e.category));
+    (state.finance.bills || []).filter(b => b.date.slice(0,7) === ym).forEach(b => addItem(b.name || b.description, b.amount, b.category));
+    items.sort((a,b) => b.total - a.total);
+    const topItems = items.slice(0,3);
+    const categoryTotals = {};
+    items.forEach(item => {
+      const categoryKey = String(item.category || 'Outros').trim().toLowerCase() || 'outros';
+      const label = getFinanceCategoryLabel(item.category || 'Outros');
+      if (!categoryTotals[categoryKey]) categoryTotals[categoryKey] = { label, total: 0, count: 0 };
+      categoryTotals[categoryKey].total += item.total;
+      categoryTotals[categoryKey].count += item.count;
+    });
+    const topCategory = Object.values(categoryTotals).sort((a,b) => b.total - a.total)[0] || null;
+    return { topItems, topCategory };
+  }
+
+  function maybeAwardSavingsGoalReward(){
+    const week = weekKey(todayStr());
+    const summary = computeWeekSummary(week);
+    const target = Math.max(0, Number(state.finance.savingsGoal) || 0);
+    if (!target || summary.savingsProgress < 100) return false;
+    const rewardKey = 'savings-goal-' + week;
+    if (state.claims && state.claims.savingsGoalRewardKey === rewardKey) return false;
+    const reward = 25;
+    state.character.gold = (state.character.gold || 0) + reward;
+    state.claims = state.claims || {};
+    state.claims.savingsGoalRewardKey = rewardKey;
+    persist();
+    pushToast({ title: 'Meta de economia atingida!', sub: '+' + reward + ' de ouro' });
+    return true;
+  }
+
+  function computeFinanceSummary(ym){
+    ym = ym || todayStr().slice(0,7);
+    const monthStats = computeMonthStats(ym);
+    const receitas = computeMonthIncomes(ym);
+    const despesasOper = computeMonthExpenses(ym);
+    const contasFixas = computeMonthBills(ym);
+    const despesas = despesasOper + contasFixas;
+    const bankTotal = (state.finance.bankAccounts || []).reduce((s,b)=>s+(b.balance||0),0);
+    const investTotal = (state.finance.investments || []).reduce((s,i)=>s+(i.amount||0),0);
+    const patrimonio = bankTotal + (state.character.saldo||0) + investTotal;
+    const lucroLiquido = receitas - despesas;
+    const topExpenseItem = computeTopExpenseItem(ym);
+    return { bankTotal, receitas, despesas, lucroLiquido, patrimonio, monthStats, topExpenseItem };
+  }
+
+  function lastNMonthsLabels(n){
+    const res=[];
+    const now = new Date();
+    for(let i=n-1;i>=0;i--){ const d=new Date(now.getFullYear(), now.getMonth()-i, 1); const ym = d.toISOString().slice(0,7); res.push({ label: d.toLocaleString('pt-BR',{month:'short', year:'numeric'}).replace(' de ','/'), ym }); }
+    return res;
+  }
+
+  function renderFinanceOverviewChart(){
+    const canvas = document.getElementById('finance-weekly-chart');
+    if(!canvas) return;
+    if(typeof Chart === 'undefined') { pushToast({title:'Erro', sub:'Chart.js não carregado'}); return; }
+    const weeks = lastNWeeksLabels(6);
+    const labels = weeks.map(w => w.label);
+    const receitas = weeks.map(w => computeWeekSummary(w.wk).receitas || 0);
+    const despesas = weeks.map(w => computeWeekSummary(w.wk).despesas || 0);
+
+    if(financeOverviewChart){ try{ financeOverviewChart.destroy(); }catch(e){} financeOverviewChart=null; }
+
+    const ctx = canvas.getContext('2d');
+    financeOverviewChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Receita', data: receitas, backgroundColor: 'rgba(46,230,214,0.9)', borderRadius: 6 },
+          { label: 'Gasto', data: despesas, backgroundColor: 'rgba(244,197,66,0.9)', borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text') || '#EDEFF4' } } },
+        scales: {
+          x: { grid: { display:false }, ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted') } },
+          y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted') } }
+        }
+      }
+    });
+  }
+
+  function lastNWeeksLabels(n){
+    const res=[];
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    const day = (startOfWeek.getDay()+6)%7;
+    startOfWeek.setDate(now.getDate()-day);
+    for(let i=n-1;i>=0;i--){
+      const start = new Date(startOfWeek);
+      start.setDate(startOfWeek.getDate() - (i*7));
+      const end = new Date(start);
+      end.setDate(start.getDate()+6);
+      const wk = weekKey(start.toISOString().slice(0,10));
+      res.push({ label: start.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) + ' - ' + end.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}), wk });
+    }
+    return res;
+  }
+
+  function renderFinanceChart(){
+    const canvas = document.getElementById('finance-report-chart');
+    if(!canvas) return;
+    if(typeof Chart === 'undefined') { pushToast({title:'Erro', sub:'Chart.js não carregado'}); return; }
+    const months = lastNMonthsLabels(6);
+    const labels = months.map(m=>m.label);
+    const receitas = months.map(m=>computeMonthStats(m.ym).totalValue || 0);
+    const despesas = months.map(m=>computeMonthExpenses(m.ym) || 0);
+    const lucros = labels.map((_,i)=>receitas[i]-despesas[i]);
+
+    if(financeChart){ try{ financeChart.destroy(); }catch(e){} financeChart=null; }
+
+    const ctx = canvas.getContext('2d');
+    financeChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Receitas', data: receitas, backgroundColor: 'rgba(79,163,255,0.9)', borderRadius:6 },
+          { label: 'Despesas', data: despesas, backgroundColor: 'rgba(244,197,66,0.9)', borderRadius:6 },
+          { label: 'Lucro', data: lucros, type:'line', borderColor: 'rgba(46,230,214,0.95)', backgroundColor: 'transparent', tension:0.3, pointRadius:4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text') || '#EDEFF4' } } },
+        scales: {
+          x: { grid: { display:false }, ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted') } },
+          y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted') } }
+        }
+      }
+    });
+  }
+  
+  function handleClaimDaily(){
+    const info = getDailyClaimInfo(); if (!info.done || info.alreadyClaimed) return;
+    state.claims.dailyDate = todayStr(); state.character.gold += info.reward;
+    persist(); pushToast({ title: "Meta diária!", sub: "+" + info.reward + " de ouro" }); render();
+  }
+  function handleClaimWeekly(){
+    const info = getWeeklyClaimInfo(); if (!info.done || info.alreadyClaimed) return;
+    state.claims.weeklyKey = info.wk; state.character.gold += info.reward;
+    persist(); pushToast({ title: "Meta semanal!", sub: "+" + info.reward + " de ouro" }); render();
+  }
+
+  function handleLogRoute(){
+    if (!selectedApp) return;
+    const val = parseFloat((valueInput || "0").toString().replace(",", ".")) || 0;
+    const km = parseFloat((kmInput || "0").toString().replace(",", ".")) || 0;
+    const elev = parseFloat((elevInput || "0").toString().replace(",", ".")) || 0;
+    
+    if (routes < 1) return;
+    const app = state.apps.find(a => a.id === selectedApp);
+    if (!app) return;
+
+    const c = state.character;
+    const xpGained = routes * 5 + Math.round(val);
+    const goldGained = routes * 3 + Math.round(val / 5);
+    c.saldo += val;
+    c.gold += goldGained;
+    c.energy = clamp(c.energy - routes * 10, 0, c.maxEnergy);
+    
+    const today = todayStr();
+    const earnedTodayBefore = dailyProgress(today).value;
+    const totalToday = earnedTodayBefore + val;
+    if (totalToday > c.maxDayEarned) c.maxDayEarned = totalToday;
+
+    let leveledUp = addXP(c, xpGained);
+
+    let firedEvent = null;
+    if (Math.random() >= 0.55) {
+      firedEvent = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+      if (firedEvent.xp) { if (addXP(c, firedEvent.xp)) leveledUp = true; }
+      if (firedEvent.gold) c.gold = Math.max(0, c.gold + firedEvent.gold);
+      if (firedEvent.energy) c.energy = clamp(c.energy - routes * 10, 0, c.maxEnergy);
+      if (firedEvent.health) c.health = clamp(c.health + firedEvent.health, 0, c.maxHealth);
+    }
+
+    if (c.lastRouteLogDate !== today) {
+      const yesterday = addDaysStr(today, -1);
+      c.streak = (c.lastRouteLogDate === yesterday) ? c.streak + 1 : 1;
+      c.lastRouteLogDate = today;
+    }
+
+    state.history.unshift({
+      id: uid(), date: new Date().toISOString(),
+      appId: app.id, appName: app.name, appColor: app.color,
+      routes, value: val, xp: xpGained, gold: goldGained,
+      km: km, elevation: elev
+    });
+    state.lastActiveDate = today;
+
+    refreshMissionProgress();
+    const unlocked = checkAchievements();
+    persist();
+
+    valueInput = ""; kmInput = ""; elevInput = ""; routes = 1; saldoPulse = true;
+    clearTimeout(pulseTimer); pulseTimer = setTimeout(() => { saldoPulse = false; render(); }, 600);
+
+    if (firedEvent) pushToast({ title: firedEvent.icon + " " + firedEvent.name, sub: firedEvent.msg });
+    if (leveledUp) pushToast({ title: "NÍVEL " + c.level + "!", sub: "Vida e energia restauradas" });
+    unlocked.forEach(a => pushToast({ title: "🏆 " + a.name, sub: "+" + a.reward + " de ouro" }));
+    render();
+  }
+
+  function handleRest(){
+    state.character.energy = Math.min(state.character.maxEnergy, state.character.energy + 25);
+    state.character.health = Math.min(state.character.maxHealth, state.character.health + 5);
+    persist(); render();
+  }
+
+  function getMissionReward(m){
+    const difficultyBonus = m.difficulty === 'médio' ? 3 : (m.difficulty === 'difícil' ? 6 : 0);
+    return Number(m.gold || 0) + difficultyBonus;
+  }
+
+  function completeMission(id, silent = false){
+    const m = state.missions.find(x => x.id === id);
+    if (!m) return false;
+    if (m.lastCompletedDate === todayStr()) return false;
+    m.lastCompletedDate = todayStr();
+    let leveled = addXP(state.character, m.xp);
+    state.character.gold += getMissionReward(m);
+
+    let extraMsg = "";
+    if (m.categoryId === 'saude') {
+        state.character.health = Math.min(state.character.maxHealth, state.character.health + 10);
+        state.character.energy = Math.min(state.character.maxEnergy, state.character.energy + 20);
+        extraMsg = " • +10 HP / +20 Stamina";
+    }
+
+    persist();
+    if (!silent) {
+      pushToast({ title: "Missão Concluída!", sub: `+${m.xp} XP • +${getMissionReward(m)} 🪙${extraMsg}` });
+      if (leveled) pushToast({ title: "NÍVEL " + state.character.level + "!", sub: "Vida e energia restauradas" });
+    }
+    return true;
+  }
+
+  function handleCompleteMission(id) {
+    if (completeMission(id)) render();
+  }
+
+  function resetDailyMissions(){
+    const today = todayStr();
+    const lastResetDate = state.claims && state.claims.missionsResetDate;
+    if (lastResetDate === today) return false;
+
+    state.missions.forEach(m => {
+      if ((m.period || 'diária') !== 'diária') return;
+      if (m.lastCompletedDate && m.lastCompletedDate !== today) {
+        m.lastCompletedDate = null;
+      }
+      if (m.type !== 'standard') {
+        m.progress = 0;
+      }
+    });
+
+    state.claims = state.claims || {};
+    state.claims.missionsResetDate = today;
+    return true;
+  }
+
+  function refreshMissionProgress(){
+    const today = todayStr();
+    const didReset = resetDailyMissions();
+    state.missions.forEach(m => {
+      if (m.lastCompletedDate === today) return;
+      if (m.type === 'streak') {
+        m.progress = Math.min(m.target || 1, state.character.streak || 0);
+      } else if (m.type === 'progress') {
+        const metric = m.metric || 'value';
+        let value = 0;
+        if (metric === 'routes') value = state.history.reduce((s,h)=>s+h.routes,0);
+        else if (metric === 'value') value = state.history.reduce((s,h)=>s+h.value,0);
+        m.progress = Math.min(m.target || 1, value);
+      } else if ((m.period || 'diária') !== 'diária') {
+        m.progress = 0;
+      }
+      if (m.type !== 'standard' && (m.progress || 0) >= (m.target || 1)) {
+        completeMission(m.id, false);
+      }
+    });
+    return didReset;
+  }
+
+  function startShiftTimer(){ stopShiftTimer(); shiftInterval = setInterval(render, 1000); }
+  function stopShiftTimer(){ if (shiftInterval) { clearInterval(shiftInterval); shiftInterval = null; } }
+  function handleStartShift(){ if (state.currentShift) return; state.currentShift = { startTime: new Date().toISOString() }; persist(); startShiftTimer(); render(); }
+  function handleEndShift(){
+    if (!state.currentShift) return;
+    const start = state.currentShift.startTime; const end = new Date().toISOString();
+    const entries = state.history.filter(h => h.date >= start && h.date <= end);
+    const routesCount = entries.reduce((s,h)=>s+h.routes,0); const value = entries.reduce((s,h)=>s+h.value,0);
+    const durationMin = Math.max(1, Math.round((new Date(end) - new Date(start))/60000));
+    state.shifts.unshift({ id: uid(), start, end, durationMin, routes: routesCount, value, perHour: value / (durationMin/60) });
+    state.currentShift = null; persist(); stopShiftTimer(); render();
+  }
+
+  function handleExportImage() {
+    if (typeof html2canvas === 'undefined') { alert('Erro: Biblioteca não carregada.'); return; }
+    const node = document.querySelector('#dashboard-export-area'); if (!node) return;
+    const btn = document.querySelector('#export-img-btn'); const oldText = btn.innerText;
+    btn.innerText = "⏳ Gerando imagem...";
+    html2canvas(node, { backgroundColor: '#0B0E14', scale: 2 }).then(canvas => {
+        const link = document.createElement('a'); link.download = 'rota-rpg-resumo-' + todayStr() + '.png';
+        link.href = canvas.toDataURL('image/png'); link.click(); btn.innerText = oldText;
+    }).catch(err => { btn.innerText = oldText; pushToast({title:"Erro", sub:"Falha ao gerar."}); });
+  }
+
+  function render(){
+    document.body.setAttribute('data-theme', state.settings.theme);
+    const c = state.character;
+    const vehicle = getVehicleEmoji(c.level);
+    let html = '';
+
+    // Topbar
+    html += '<div class="rrpg-topbar"><div class="rrpg-title"><span class="dot"></span>ROTA RPG</div><div class="rrpg-theme-picker">';
+    THEMES.forEach(t => { html += '<button class="rrpg-theme-dot' + (state.settings.theme===t.id?' active':'') + '" style="background:' + t.color + '" data-theme-pick="' + t.id + '"></button>'; });
+    html += '</div></div>';
+
+    if (banner) html += '<div class="rrpg-banner"><span>' + esc(banner) + '</span><button id="banner-close">✕</button></div>';
+
+    // ============ ABA 1: PERSONAGEM ============
+    if (activeTab === 'personagem') {
+      const dailyInfo = getDailyClaimInfo();
+      const weeklyInfo = getWeeklyClaimInfo();
+
+      html += '<div class="rrpg-card">';
+      html += '<div class="rrpg-hud-top">';
+      html += '<div class="rrpg-avatar">' + vehicle + '<div class="rrpg-lvl-badge">Lvl ' + c.level + '</div></div>';
+      html += '<div><div class="rrpg-name" id="char-name" contenteditable="true">' + esc(c.name) + '</div>';
+      html += '<div class="rrpg-class">Entregador • clique no nome p/ editar</div>';
+      html += '<div class="rrpg-stat-pills"><div class="rrpg-pill">🔥 <span>' + c.streak + '</span></div><div class="rrpg-pill">🪙 <span>' + c.gold + '</span></div></div>';
+      html += '</div></div>';
+
+      html += '<div class="rrpg-bar-row"><div class="rrpg-bar-icon" style="color:#FF3D81">♥</div><div class="rrpg-bar-track"><div class="rrpg-bar-fill health" style="width:' + (100*c.health/c.maxHealth) + '%"></div></div><div class="rrpg-bar-num">' + c.health + '/' + c.maxHealth + '</div></div>';
+      html += '<div class="rrpg-bar-row"><div class="rrpg-bar-icon" style="color:#2EE6D6">⚡</div><div class="rrpg-bar-track"><div class="rrpg-bar-fill energy" style="width:' + (100*c.energy/c.maxEnergy) + '%"></div></div><div class="rrpg-bar-num">' + c.energy + '/' + c.maxEnergy + '</div></div>';
+      html += '<div class="rrpg-bar-row"><div class="rrpg-bar-icon" style="color:var(--accent)">✦</div><div class="rrpg-bar-track"><div class="rrpg-bar-fill xp" style="width:' + (100*c.xp/c.xpToNext) + '%"></div></div><div class="rrpg-bar-num">' + c.xp + '/' + c.xpToNext + '</div></div>';
+      html += '<button class="rrpg-rest-btn" id="rest-btn">Descansar (+25 energia, +5 vida)</button>';
+      html += '</div>';
+
+      html += '<div class="rrpg-card rrpg-saldo-card">';
+      html += '<div class="rrpg-saldo-label">SALDO DELIVERY</div>';
+      html += '<div class="rrpg-saldo-num' + (saldoPulse ? ' rrpg-saldo-pulse' : '') + '">' + brl(c.saldo) + '</div>';
+      html += '</div>';
+
+      const characterOverview = getCharacterOverview();
+      html += '<div class="rrpg-card">';
+      html += '<div class="rrpg-section-label" style="margin-bottom:10px">Resumo do personagem</div>';
+      html += '<div class="rrpg-fin-grid">';
+      html += '<div class="rrpg-fin-cell"><div class="l">Rotas hoje</div><div class="v pos">' + characterOverview.todayRoutes + '</div></div>';
+      html += '<div class="rrpg-fin-cell"><div class="l">Receita hoje</div><div class="v pos">' + brl(characterOverview.todayValue) + '</div></div>';
+      html += '<div class="rrpg-fin-cell"><div class="l">Streak</div><div class="v acc">' + characterOverview.streak + ' dias</div></div>';
+      html += '<div class="rrpg-fin-cell"><div class="l">Melhor dia</div><div class="v acc">' + brl(characterOverview.bestDay) + '</div></div>';
+      html += '</div></div>';
+
+      html += '<div class="rrpg-card">';
+      html += '<div class="rrpg-section-label" style="margin-bottom:6px">Turno de Delivery</div>';
+      if (state.currentShift) {
+        const entries = state.history.filter(h => h.date >= state.currentShift.startTime);
+        html += '<div class="rrpg-shift-active"><div class="rrpg-shift-timer">' + formatElapsed(state.currentShift.startTime) + '</div>';
+        html += '<div class="rrpg-shift-sub"><span>🛵 ' + entries.reduce((s,h)=>s+h.routes,0) + ' rotas</span><span>💵 ' + brl(entries.reduce((s,h)=>s+h.value,0)) + '</span></div>';
+        html += '<button class="rrpg-submit" id="end-shift-btn">Finalizar turno</button></div>';
+      } else {
+        html += '<button class="rrpg-submit" id="start-shift-btn">▶️ Iniciar turno</button>';
+      }
+      html += '</div>';
+
+      // Bloco Metas
+      html += '<div class="rrpg-card">';
+      html += '<div class="rrpg-section-head" style="margin-bottom:16px"><div class="rrpg-section-label">METAS</div><button class="rrpg-gear-btn" id="goals-gear">⚙️ ajustar</button></div>';
+      
+      html += '<div class="rrpg-goal-settings' + (goalsEditOpen ? ' open' : '') + '">';
+      html += '<div class="rrpg-goal-group">';
+      html += '<h4>Meta diária</h4><div class="rrpg-goal-settings-row">';
+      html += '<div><label>Tipo</label><select id="daily-metric"><option value="routes"' + (state.goals.daily.metric==='routes'?' selected':'') + '>Rotas</option><option value="value"' + (state.goals.daily.metric==='value'?' selected':'') + '>R$</option></select></div>';
+      html += '<div><label>Meta</label><input type="number" id="daily-target" value="' + state.goals.daily.target + '"></div>';
+      html += '<div><label>Recompensa</label><input type="number" id="daily-reward" value="' + state.goals.daily.reward + '"></div></div>';
+      html += '<h4>Meta semanal</h4><div class="rrpg-goal-settings-row">';
+      html += '<div><label>Tipo</label><select id="weekly-metric"><option value="routes"' + (state.goals.weekly.metric==='routes'?' selected':'') + '>Rotas</option><option value="value"' + (state.goals.weekly.metric==='value'?' selected':'') + '>R$</option></select></div>';
+      html += '<div><label>Meta</label><input type="number" id="weekly-target" value="' + state.goals.weekly.target + '"></div>';
+      html += '<div><label>Recompensa</label><input type="number" id="weekly-reward" value="' + state.goals.weekly.reward + '"></div></div>';
+      html += '<button class="rrpg-save-goals-btn" id="save-goals-btn">Salvar metas</button></div></div>';
+
+      html += '<div class="rrpg-goal-block"><div class="rrpg-goal-top"><span class="rrpg-goal-name">Hoje</span><span class="rrpg-goal-progress-text">' + (dailyInfo.metric==='routes' ? dailyInfo.progress + '/' + dailyInfo.target + ' rotas' : brl(dailyInfo.progress) + ' / ' + brl(dailyInfo.target)) + '</span></div>';
+      html += '<div class="rrpg-progress-track"><div class="rrpg-progress-fill" style="width:' + Math.min(100, 100*dailyInfo.progress/dailyInfo.target) + '%"></div></div>';
+      html += '<div class="rrpg-goal-bottom"><span class="rrpg-goal-reward">🪙 +' + dailyInfo.reward + '</span><button class="rrpg-claim-btn" id="claim-daily-btn" ' + (!dailyInfo.done || dailyInfo.alreadyClaimed ? 'disabled' : '') + '>Resgatar</button></div></div>';
+
+      html += '<div class="rrpg-goal-block"><div class="rrpg-goal-top"><span class="rrpg-goal-name">Esta semana</span><span class="rrpg-goal-progress-text">' + (weeklyInfo.metric==='routes' ? weeklyInfo.progress + '/' + weeklyInfo.target + ' rotas' : brl(weeklyInfo.progress) + ' / ' + brl(weeklyInfo.target)) + '</span></div>';
+      html += '<div class="rrpg-progress-track"><div class="rrpg-progress-fill" style="width:' + Math.min(100, 100*weeklyInfo.progress/weeklyInfo.target) + '%"></div></div>';
+      html += '<div class="rrpg-goal-bottom"><span class="rrpg-goal-reward">🪙 +' + weeklyInfo.reward + '</span><button class="rrpg-claim-btn" id="claim-weekly-btn" ' + (!weeklyInfo.done || weeklyInfo.alreadyClaimed ? 'disabled' : '') + '>Resgatar</button></div></div>';
+      html += '</div>';
+
+      // Form Lançamento
+      html += '<div class="rrpg-card">';
+      html += '<div class="rrpg-section-label" style="margin-bottom:10px">Registrar Rota de Delivery</div>';
+      html += '<div class="rrpg-chip-row">';
+      state.apps.forEach(app => { html += '<div class="rrpg-chip' + (selectedApp===app.id ? ' selected' : '') + '" style="--chip-color:' + app.color + '" data-app="' + app.id + '"><span class="swatch"></span>' + esc(app.name) + '<span class="rrpg-chip-del" data-del="' + app.id + '">✕</span></div>'; });
+      html += '<button class="rrpg-chip-add" id="add-app-toggle">+</button></div>';
+
+      html += '<div class="rrpg-newapp" id="new-app-container"><input type="text" id="new-app-name" placeholder="Nome do app"><div class="rrpg-swatches">';
+      SWATCHES.forEach(sw => { html += '<div class="rrpg-swatch-btn' + (newAppColor===sw?' active':'') + '" style="background:' + sw + '" data-swatch="' + sw + '"></div>'; });
+      html += '</div><button class="rrpg-submit-sm" id="save-app-btn">Salvar</button></div>';
+
+      html += '<div class="rrpg-form-row"><div class="rrpg-stepper"><button id="routes-minus">–</button><span id="routes-counter-label">' + routes + '</span><button id="routes-plus">+</button></div>';
+      html += '<div class="rrpg-value-input"><span>R$</span><input type="text" inputmode="decimal" placeholder="0,00" id="value-input" value="' + esc(valueInput) + '"></div></div>';
+      html += '<div class="rrpg-form-row"><div class="rrpg-value-input"><span>KM</span><input type="text" inputmode="decimal" placeholder="0.0" id="km-input" value="' + esc(kmInput) + '"></div>';
+      html += '<div class="rrpg-value-input"><span>m ⛰️</span><input type="text" inputmode="decimal" placeholder="0" id="elev-input" value="' + esc(elevInput) + '"></div></div>';
+      html += '<button class="rrpg-submit" id="log-route-btn" ' + (!selectedApp ? 'disabled' : '') + '>' + vehicle + ' Registrar rota</button></div>';
+    }
+
+    // ============ ABA 2: MISSÕES ============
+    if (activeTab === 'missoes') {
+      html += '<div class="rrpg-tab-switch">';
+      html += '<button class="' + (missionSubTab==='diarias'?'active':'') + '" data-msubtab="diarias">📝 Missões Diárias</button>';
+      html += '<button class="' + (missionSubTab==='conquistas'?'active':'') + '" data-msubtab="conquistas">🏆 Conquistas</button></div>';
+
+      if (missionSubTab === 'diarias') {
+        html += '<div class="rrpg-chip-row">';
+        html += '<div class="rrpg-chip' + (missionFilterCat==='all' ? ' selected' : '') + '" data-mcat="all">Todas</div>';
+        state.missionCategories.forEach(cat => { html += '<div class="rrpg-chip' + (missionFilterCat===cat.id ? ' selected' : '') + '" style="--chip-color:' + cat.color + '" data-mcat="' + cat.id + '"><span class="swatch"></span>' + esc(cat.name) + '<button class="rrpg-chip-del" data-del-mission-cat="' + cat.id + '" title="Excluir categoria">✕</button></div>'; });
+        html += '</div>';
+
+        const filtered = state.missions.filter(m => missionFilterCat === 'all' || m.categoryId === missionFilterCat);
+        const grouped = missionFilterCat === 'all'
+          ? state.missionCategories
+              .map(cat => ({ cat, missions: filtered.filter(m => m.categoryId === cat.id) }))
+              .filter(group => group.missions.length)
+          : [{ cat: null, missions: filtered }];
+
+        if(!grouped.some(group => group.missions.length)) html += '<div class="rrpg-empty">Nenhuma missão diária listada.</div>';
+
+        grouped.forEach((group, index) => {
+          if (missionFilterCat === 'all' && index > 0) {
+            html += '<div class="rrpg-mission-group-separator"></div>';
+          }
+          if (missionFilterCat === 'all' && group.cat) {
+            html += '<div class="rrpg-mission-category-header"><span class="rrpg-cat-badge" style="background:' + group.cat.color + '40; color:' + group.cat.color + '">' + esc(group.cat.name) + '</span></div>';
+          }
+          const orderedMissions = [...group.missions].sort((a, b) => {
+            const aDone = a.lastCompletedDate === todayStr();
+            const bDone = b.lastCompletedDate === todayStr();
+            return aDone === bDone ? 0 : (aDone ? 1 : -1);
+          });
+          orderedMissions.forEach(m => {
+            const isDone = m.lastCompletedDate === todayStr();
+            const cat = state.missionCategories.find(c => c.id === m.categoryId) || {name:'-', color:'#888'};
+            html += '<div class="rrpg-mission-card' + (isDone ? ' completed' : '') + '">';
+            html += '<button class="rrpg-checkbox" data-complete-mission="' + m.id + '" ' + (isDone ? 'disabled' : '') + '>✓</button>';
+            html += '<div class="rrpg-mission-info"><span class="rrpg-cat-badge" style="background:' + cat.color + '40; color:' + cat.color + '">' + esc(cat.name) + '</span>';
+            html += '<div class="rrpg-mission-title">' + esc(m.title) + '</div>';
+            html += '<div class="rrpg-mission-rewards">✨ +' + m.xp + ' XP &nbsp; 🪙 +' + getMissionReward(m) + ' &nbsp; • ' + esc(m.period || 'diária') + ' · ' + esc(m.difficulty || 'fácil') + '</div>';
+            if (m.type === 'streak' || m.type === 'progress') {
+              const progressValue = Number(m.progress || 0);
+              const targetValue = Number(m.target || 1);
+              html += '<div class="rrpg-goal-progress-text">Progresso: ' + progressValue + '/' + targetValue + '</div>';
+            }
+            html += '</div>';
+            html += '<button class="rrpg-mission-del" data-del-mission="' + m.id + '">✕</button></div>';
+          });
+        });
+
+        html += '<details class="rrpg-details-group" style="margin-top:15px;"><summary>+ Criar Nova Missão</summary><div class="rrpg-details-content">';
+        html += '<input type="text" id="new-mission-title" placeholder="Nome da missão" style="width:100%;margin-bottom:8px;">';
+        html += '<div class="rrpg-newlist"><select id="new-mission-cat">';
+        state.missionCategories.forEach(c => { html += '<option value="' + c.id + '" ' + (newMissionCat===c.id?'selected':'') + '>' + esc(c.name) + '</option>'; });
+        html += '</select><select id="new-mission-difficulty"><option value="fácil">Fácil</option><option value="médio">Médio</option><option value="difícil">Difícil</option></select><select id="new-mission-period"><option value="diária">Diária</option><option value="semanal">Semanal</option></select></div>';
+        html += '<div class="rrpg-newlist" style="margin-top:8px;"><input type="number" id="new-mission-xp" placeholder="XP"><input type="number" id="new-mission-gold" placeholder="Ouro"></div>';
+        html += '<button class="rrpg-submit-sm" id="add-mission-btn" style="width:100%;margin-top:8px;">Salvar Missão</button></div></details>';
+
+        html += '<details class="rrpg-details-group"><summary>+ Adicionar Categoria de Missão</summary><div class="rrpg-details-content">';
+        html += '<div class="rrpg-newlist"><input type="text" id="new-cat-name" placeholder="Nome (Ex: Estudos)"></div><div class="rrpg-swatches" style="margin-top:8px;">';
+        SWATCHES.forEach(sw => { html += '<div class="rrpg-swatch-btn' + (newCatColor===sw?' active':'') + '" style="background:' + sw + '" data-cswatch="' + sw + '"></div>'; });
+        html += '</div><button class="rrpg-submit-sm" id="add-cat-btn" style="width:100%;margin-top:8px;">Salvar Categoria</button></div></details>';
+
+        // Loja
+        html += '<div class="rrpg-card" style="margin-top:14px;">';
+        html += '<div class="rrpg-section-head"><div class="rrpg-section-label">Loja de recompensas</div><span class="rrpg-goal-reward">🪙 ' + c.gold + '</span></div>';
+        if (!state.rewards.length) html += '<div class="rrpg-empty">Crie recompensas reais pra trocar por ouro.</div>';
+        state.rewards.forEach(r => {
+            html += '<div class="rrpg-shop-row"><div class="rrpg-shop-name">' + esc(r.name) + '</div><div class="rrpg-shop-cost">🪙 ' + r.cost + '</div>';
+            html += '<button class="rrpg-claim-btn" data-redeem="' + r.id + '" ' + (c.gold < r.cost ? 'disabled' : '') + '>Resgatar</button><button class="rrpg-shop-del" data-del-reward="' + r.id + '">✕</button></div>';
+        });
+        html += '<div class="rrpg-newreward"><input type="text" id="new-reward-name" placeholder="Recompensa" value="' + esc(newRewardName) + '"><input type="number" id="new-reward-cost" placeholder="Custo" value="' + esc(newRewardCost) + '"><button class="rrpg-submit-sm" id="add-reward-btn">+</button></div>';
+        html += '</div>';
+      }
+
+      if (missionSubTab === 'conquistas') {
+        const cats = ['delivery', 'youtube', 'saude'];
+        const catNames = { 'delivery': '🛵 Delivery', 'youtube': '▶️ YouTube', 'saude': '❤️ Saúde' };
+        cats.forEach(cId => {
+          html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">' + catNames[cId] + '</div><div class="rrpg-badge-grid">';
+          ACHIEVEMENTS.filter(a => a.cat === cId).forEach(a => {
+            const unlocked = state.achievements.unlocked.includes(a.id);
+            html += '<div class="rrpg-badge' + (unlocked ? '' : ' locked') + '" ' + (a.manual && !unlocked ? 'data-claim-achieve="' + a.id + '" style="cursor:pointer;"' : '') + '>';
+            html += '<div class="icon">' + a.icon + '</div><div class="nm">' + esc(a.name) + '</div><div class="ds">' + esc(a.desc) + '</div>';
+            if(a.manual && !unlocked) html += '<div style="font-size:7px;color:var(--accent);margin-top:2px;">REIVINDICAR</div>';
+            html += '</div>';
+          });
+          html += '</div></div>';
+        });
+      }
+    }
+
+    // ============ ABA 3: FINANCEIRO ============
+    if (activeTab === 'financeiro') {
+      maybeAwardSavingsGoalReward();
+      const fin = computeFinanceSummary();
+      html += '<div class="rrpg-tab-switch">';
+      [['resumo','🏠 Resumo'], ['registro','📝 Registro'], ['relatorios','📑 Relatórios']].forEach(t => { html += '<button class="' + (finSubTab===t[0]?'active':'') + '" data-fintab="' + t[0] + '">' + t[1] + '</button>'; });
+      html += '</div>';
+
+      if (finSubTab === 'resumo') {
+        const weekKeyValue = weekKey(todayStr());
+        const weekSummary = computeWeekSummary(weekKeyValue);
+        html += '<button class="rrpg-outline-btn" id="export-img-btn" style="width:100%; margin-bottom:14px;">📸 Salvar Resumo como Imagem</button>';
+        html += '<div id="dashboard-export-area" style="padding:16px; background:var(--bg); border-radius:16px; margin: 0 -16px;">';
+        html += '<div class="rrpg-card" style="margin-bottom:0;"><div class="rrpg-section-label" style="margin-bottom:10px">Dashboard Principal</div><div class="rrpg-fin-grid">';
+        html += '<div class="rrpg-fin-cell wide" style="text-align:center"><div class="l">Saldo Total (Geral)</div><div class="v">' + brl(c.saldo + fin.bankTotal) + '</div></div>';
+        html += '<div class="rrpg-fin-cell"><div class="l">Receitas (mês)</div><div class="v pos">+' + brl(fin.receitas) + '</div></div><div class="rrpg-fin-cell"><div class="l">Despesas (mês)</div><div class="v neg">-' + brl(fin.despesas) + '</div></div>';
+        html += '<div class="rrpg-fin-cell"><div class="l">Lucro Líquido</div><div class="v ' + (fin.lucroLiquido>=0?'pos':'neg') + '">' + brl(fin.lucroLiquido) + '</div></div><div class="rrpg-fin-cell"><div class="l">Patrimônio</div><div class="v acc">' + brl(fin.patrimonio) + '</div></div>';
+        html += '<div class="rrpg-fin-cell"><div class="l">Distância (mês)</div><div class="v pos">' + fin.monthStats.totalKm.toFixed(1) + ' km</div></div><div class="rrpg-fin-cell"><div class="l">Lucro/KM</div><div class="v pos">' + brl(fin.monthStats.lucroPorKm) + '</div></div>';
+        html += '</div></div></div>';
+        const alerts = getFinanceAlerts();
+        const ranking = getFinanceRanking();
+        if (alerts.length) {
+          html += '<div class="rrpg-card" style="margin-top:12px; border:1px solid var(--accent);">';
+          html += '<div class="rrpg-section-label" style="margin-bottom:10px">⚠️ Alertas</div>';
+          alerts.forEach(alert => {
+            html += '<div style="padding:10px 12px;border-radius:10px;background:var(--bg-card-2);margin-bottom:8px;border-left:3px solid var(--accent);"><div style="font-weight:700">' + esc(alert.title) + '</div><div class="rrpg-goal-progress-text">' + esc(alert.message) + '</div></div>';
+          });
+          html += '</div>';
+        }
+        const budgetStatus = getMonthlyBudgetStatus();
+        html += '<div class="rrpg-card" style="margin-top:12px;"><div class="rrpg-section-label" style="margin-bottom:10px">💳 Orçamento mensal</div>';
+        html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;"><input type="number" id="monthly-budget-input" value="' + esc(budgetStatus.budget) + '" min="0" step="1" style="flex:1;min-width:120px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card-2);color:var(--text);"><button class="rrpg-submit-sm" id="save-monthly-budget-btn">Salvar</button></div>';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;"><div><div style="font-weight:700">Meta de ' + brl(budgetStatus.budget) + '</div><div class="rrpg-goal-progress-text">Restante: ' + brl(budgetStatus.remaining) + '</div></div><div class="rrpg-goal-reward">' + (budgetStatus.isOver ? '⚠️' : brl(budgetStatus.spent)) + '</div></div>';
+        html += '<div class="rrpg-progress-track"><div class="rrpg-progress-fill" style="width:' + budgetStatus.progress + '%"></div></div></div>';
+        html += '<div class="rrpg-card" style="margin-top:12px;"><div class="rrpg-section-label" style="margin-bottom:10px">📅 Resumo Semanal</div><div class="rrpg-fin-grid">';
+        html += '<div class="rrpg-fin-cell"><div class="l">Receita da semana</div><div class="v pos">+' + brl(weekSummary.receitas) + '</div></div>';
+        html += '<div class="rrpg-fin-cell"><div class="l">Gasto da semana</div><div class="v neg">-' + brl(weekSummary.despesas) + '</div></div>';
+        html += '<div class="rrpg-fin-cell"><div class="l">Saldo da semana</div><div class="v ' + (weekSummary.lucroLiquido>=0?'pos':'neg') + '">' + brl(weekSummary.lucroLiquido) + '</div></div>';
+        html += '</div></div>';
+        html += '<div class="rrpg-card" style="margin-top:12px;"><div class="rrpg-section-label" style="margin-bottom:10px">📌 Maior gasto da semana</div>';
+        if (weekSummary.topExpenseItem) {
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><div><div style="font-weight:700">' + esc(weekSummary.topExpenseItem.name) + '</div><div class="rrpg-goal-progress-text">Total acumulado: ' + brl(weekSummary.topExpenseItem.total) + '</div></div><div class="rrpg-goal-reward">-' + brl(weekSummary.topExpenseItem.total) + '</div></div>';
+        } else {
+          html += '<div class="rrpg-empty">Nenhum gasto registrado esta semana.</div>';
+        }
+        html += '</div>';
+        html += '<div class="rrpg-card" style="margin-top:12px;">';
+        html += '<div class="rrpg-section-head" style="margin-bottom:10px"><div class="rrpg-section-label">🎯 Meta de economia</div><button class="rrpg-gear-btn" id="savings-goal-gear">⚙️ ajustar</button></div>';
+        html += '<div class="rrpg-goal-settings' + (savingsGoalEditOpen ? ' open' : '') + '">';
+        html += '<div class="rrpg-goal-group">';
+        html += '<h4>Meta semanal</h4><div class="rrpg-goal-settings-row"><div><label>Valor da meta</label><input type="number" id="savings-goal-input" value="' + esc(weekSummary.savingsTarget) + '" min="0" step="1"></div></div>';
+        html += '<button class="rrpg-save-goals-btn" id="save-savings-goal-btn">Salvar meta</button></div></div>';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;"><div><div style="font-weight:700">Meta de ' + brl(weekSummary.savingsTarget) + '</div><div class="rrpg-goal-progress-text">' + brl(Math.max(0, weekSummary.lucroLiquido)) + ' acumulado</div></div><div class="rrpg-goal-reward">' + (weekSummary.savingsProgress >= 100 ? '✅' : brl(weekSummary.savingsRemaining)) + '</div></div>';
+        html += '<div style="height:10px;border-radius:999px;background:var(--bg-card-2);overflow:hidden;border:1px solid var(--border);"><div style="width:' + weekSummary.savingsProgress + '%;height:100%;background:linear-gradient(90deg,#2ee6d6,#4fa3ff);border-radius:999px;"></div></div>';
+        html += '</div>';
+        html += '<div class="rrpg-card" style="margin-top:12px;"><div class="rrpg-section-label" style="margin-bottom:10px">📈 Receita x gasto por semana</div><div style="padding:12px; height:220px; background:var(--bg-card-2); border-radius:12px; border:1px solid var(--border);"><canvas id="finance-weekly-chart" style="width:100%;height:100%;"></canvas></div></div>';
+        html += '<div class="rrpg-card" style="margin-top:12px;"><div class="rrpg-section-label" style="margin-bottom:10px">🏆 Ranking de gastos</div>';
+        if (ranking.topItems.length) {
+          html += '<div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Top 3 itens mais caros</div>';
+          ranking.topItems.forEach((item, index) => {
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);"><div><div style="font-weight:700">' + esc(item.name) + '</div><div class="rrpg-goal-progress-text">' + item.count + ' registro(s)</div></div><div class="rrpg-goal-reward neg">-' + brl(item.total) + '</div></div>';
+          });
+          html += '</div>';
+        } else {
+          html += '<div class="rrpg-empty">Nenhum gasto registrado.</div>';
+        }
+        if (ranking.topCategory) {
+          html += '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--bg-card-2);"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Categoria que mais consome</div><div style="font-weight:700">' + esc(ranking.topCategory.label) + '</div><div class="rrpg-goal-progress-text">Total: ' + brl(ranking.topCategory.total) + '</div></div>';
+        }
+        html += '</div>';
+        const historyEntries = getFinanceHistoryEntries().slice(0, 5);
+        html += '<div class="rrpg-card" style="margin-top:12px;"><div class="rrpg-section-label" style="margin-bottom:10px">🕘 Últimos 5 gastos</div>';
+        if (historyEntries.length) {
+          historyEntries.forEach(entry => {
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);"><div><div style="font-weight:700">' + esc(entry.description) + '</div><div class="rrpg-goal-progress-text">' + fmtDate(entry.date) + ' · ' + esc(getFinanceCategoryLabel(entry.category)) + '</div></div><div class="rrpg-goal-reward neg">-' + brl(entry.amount) + '</div></div>';
+          });
+        } else {
+          html += '<div class="rrpg-empty">Nenhum gasto recente.</div>';
+        }
+        html += '</div>';
+        html += '<div class="rrpg-card" style="margin-top:12px;"><div class="rrpg-section-label" style="margin-bottom:10px">📊 Onde o dinheiro está indo</div>';
+        const categoryBreakdown = computeFinanceCategoryBreakdown();
+        if (categoryBreakdown.length) {
+          categoryBreakdown.forEach(item => {
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);"><div><div style="font-weight:700">' + esc(item.label) + '</div><div class="rrpg-goal-progress-text">' + item.count + ' registro(s)</div></div><div class="rrpg-goal-reward neg">-' + brl(item.total) + '</div></div>';
+          });
+        } else {
+          html += '<div class="rrpg-empty">Nenhuma categoria registrada este mês.</div>';
+        }
+        html += '</div>';
+      }
+
+      if (finSubTab === 'registro') {
+        const allFinanceCategories = getFinanceCategories();
+        html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">🏷️ Categorias financeiras</div><div class="rrpg-chip-row">';
+        allFinanceCategories.forEach(cat => {
+          html += '<div class="rrpg-chip" style="--chip-color:' + (cat.color || '#888') + '"><span class="swatch"></span>' + esc(cat.name) + '<button class="rrpg-chip-del" data-del-finance-cat="' + esc(cat.id) + '" title="Excluir categoria">✕</button></div>';
+        });
+        html += '</div></div>';
+        html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">➕ Nova categoria financeira</div><div class="rrpg-newlist"><input type="text" id="new-finance-cat-name" placeholder="Nome da categoria"></div><div class="rrpg-swatches" style="margin-top:8px;">';
+        SWATCHES.forEach(sw => { html += '<div class="rrpg-swatch-btn' + (newFinanceCatColor===sw?' active':'') + '" style="background:' + sw + '" data-fcat-color="' + sw + '"></div>'; });
+        html += '</div><button class="rrpg-submit-sm" id="add-finance-cat-btn" style="width:100%;margin-top:8px;">Salvar categoria</button></div>';
+        html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">💰 Registrar Receita Extra</div><div class="rrpg-newlist"><input type="text" id="new-income-desc" placeholder="Ex: Freelance"><input type="text" inputmode="decimal" id="new-income-amount" placeholder="Valor R$"><button class="rrpg-submit-sm" id="add-income-btn">Salvar</button></div></div>';
+        html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">💸 Registrar Gastos (Operacional)</div><div class="rrpg-newlist"><input type="text" id="new-expense-desc" placeholder="Ex: Combustível"><input type="text" inputmode="decimal" id="new-expense-amount" placeholder="Valor R$"><select id="new-expense-category" style="min-width:140px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg-card-2); color:var(--text);">' + renderFinanceCategoryOptions('Outros') + '</select><button class="rrpg-submit-sm" id="add-expense-btn">Registrar</button></div></div>';
+        html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">📄 Registrar Contas Fixas</div><div class="rrpg-newlist"><input type="text" id="new-bill-name" placeholder="Ex: Internet"><input type="text" inputmode="decimal" id="new-bill-amount" placeholder="Valor R$"><select id="new-bill-category" style="min-width:140px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg-card-2); color:var(--text);">' + renderFinanceCategoryOptions('Outros') + '</select></div><button class="rrpg-submit-sm" id="add-bill-btn" style="width:100%;margin-top:8px;">Salvar Conta Fixa</button></div>';
+        html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">🏦 Registrar Contas Bancárias</div><div class="rrpg-newlist"><input type="text" id="new-account-name" placeholder="Banco"><input type="text" inputmode="decimal" id="new-account-balance" placeholder="Saldo R$"><button class="rrpg-submit-sm" id="add-account-btn">Salvar</button></div></div>';
+        html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">💳 Registrar Cartões</div><div class="rrpg-newlist"><input type="text" id="new-card-name" placeholder="Cartão"><input type="text" inputmode="decimal" id="new-card-limit" placeholder="Limite"><input type="text" inputmode="decimal" id="new-card-used" placeholder="Fatura"><button class="rrpg-submit-sm" id="add-card-btn">Salvar</button></div></div>';
+        html += '<div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">📈 Registrar Investimentos</div><div class="rrpg-newlist"><input type="text" id="new-invest-name" placeholder="Ativo"><input type="text" inputmode="decimal" id="new-invest-amount" placeholder="Valor R$"><button class="rrpg-submit-sm" id="add-invest-btn">Salvar</button></div></div>';
+      }
+
+      if (finSubTab === 'relatorios') {
+        html += '<div class="rrpg-card"><div class="rrpg-section-label">📊 Relatório (últimos meses)</div><div style="padding:12px; height:220px; background:var(--bg-card-2); border-radius:12px; border:1px solid var(--border); margin-bottom:12px;"><canvas id="finance-report-chart" style="width:100%;height:100%;"></canvas></div></div>';
+        html += '<div class="rrpg-card"><div class="rrpg-section-label">📋 Histórico Completo</div>';
+        const groupedHistory = getFinanceHistoryGroupedEntries();
+        const historySections = [
+          { key: 'today', label: 'Hoje' },
+          { key: 'week', label: 'Esta semana' },
+          { key: 'month', label: 'Este mês' },
+          { key: 'older', label: 'Meses anteriores' }
+        ];
+        historySections.forEach(section => {
+          const items = groupedHistory[section.key] || [];
+          if (!items.length) return;
+          html += '<details class="rrpg-details-group" open>';
+          html += '<summary>' + esc(section.label) + ' (' + items.length + ')</summary><div class="rrpg-details-content">';
+          items.forEach(entry => {
+            const cls = entry.type === 'bill' || entry.type === 'expense' ? 'neg' : 'pos';
+            const sign = entry.type === 'expense' || entry.type === 'bill' ? '-' : '+';
+            html += '<div class="rrpg-list-row"><div class="nm">' + esc(entry.description) + '<div class="sub">' + fmtDate(entry.date) + ' · ' + esc(getFinanceCategoryLabel(entry.category)) + '</div></div><div class="vv ' + cls + '">' + sign + brl(entry.amount) + '</div></div>';
+          });
+          html += '</div></details>';
+        });
+        if (!groupedHistory.today.length && !groupedHistory.week.length && !groupedHistory.month.length && !groupedHistory.older.length) {
+          html += '<div class="rrpg-empty">Sem registros financeiros.</div>';
+        }
+
+        html += '<details class="rrpg-details-group"><summary>Histórico de Delivery (Rotas)</summary><div class="rrpg-details-content">';
+        if(!state.history.length) html += '<div class="rrpg-empty">Sem registros.</div>';
+        state.history.forEach(h => {
+          html += '<div class="rrpg-list-row"><div class="nm">' + esc(h.appName) + '<div class="sub">' + fmtDate(h.date) + (h.km?' · '+h.km+'km':'') + '</div></div><div class="vv pos">+' + brl(h.value) + '</div><button class="rrpg-shop-del" data-del-route="' + h.id + '">✕</button></div>';
+        });
+        html += '</div></details>';
+
+        html += '<details class="rrpg-details-group"><summary>Histórico de Receitas Extra</summary><div class="rrpg-details-content">';
+        if(!state.finance.incomes.length) html += '<div class="rrpg-empty">Sem registros.</div>';
+        state.finance.incomes.forEach(i => { html += '<div class="rrpg-list-row"><div class="nm">' + esc(i.description) + '<div class="sub">' + fmtDate(i.date) + '</div></div><div class="vv pos">+' + brl(i.amount) + '</div><button class="rrpg-shop-del" data-del-income="' + i.id + '">✕</button></div>'; });
+        html += '</div></details>';
+
+        html += '<details class="rrpg-details-group"><summary>Histórico de Gastos Operacionais</summary><div class="rrpg-details-content">';
+        if(!state.expenses.length) html += '<div class="rrpg-empty">Sem registros.</div>';
+        state.expenses.forEach(e => { html += '<div class="rrpg-list-row"><div class="nm">' + esc(e.description) + '<div class="sub">' + fmtDate(e.date) + ' · ' + esc(getFinanceCategoryLabel(e.category)) + '</div></div><div class="vv neg">-' + brl(e.amount) + '</div><button class="rrpg-shop-del" data-del-expense="' + e.id + '">✕</button></div>'; });
+        html += '</div></details>';
+
+        html += '<details class="rrpg-details-group"><summary>Histórico de Contas Fixas</summary><div class="rrpg-details-content">';
+        if(!state.finance.bills.length) html += '<div class="rrpg-empty">Sem registros.</div>';
+        state.finance.bills.forEach(b => { html += '<div class="rrpg-list-row"><div class="nm">' + esc(b.name) + '<div class="sub">' + fmtDate(b.date) + ' · ' + esc(getFinanceCategoryLabel(b.category)) + '</div></div><div class="vv neg">-' + brl(b.amount) + '</div><button class="rrpg-shop-del" data-del-bill="' + b.id + '">✕</button></div>'; });
+        html += '</div></details>';
+
+        html += '<details class="rrpg-details-group"><summary>Contas Bancárias</summary><div class="rrpg-details-content">';
+        if(!state.finance.bankAccounts.length) html += '<div class="rrpg-empty">Sem registros.</div>';
+        state.finance.bankAccounts.forEach(b => { html += '<div class="rrpg-list-row"><div class="nm">' + esc(b.name) + '</div><div class="vv">' + brl(b.balance) + '</div><button class="rrpg-shop-del" data-del-account="' + b.id + '">✕</button></div>'; });
+        html += '</div></details>';
+
+        html += '<details class="rrpg-details-group"><summary>Cartões de Crédito</summary><div class="rrpg-details-content">';
+        if(!state.finance.cards.length) html += '<div class="rrpg-empty">Sem registros.</div>';
+        state.finance.cards.forEach(c => { html += '<div class="rrpg-list-row"><div class="nm">' + esc(c.name) + '</div><div class="vv neg">-' + brl(c.used) + '</div><button class="rrpg-shop-del" data-del-card="' + c.id + '">✕</button></div>'; });
+        html += '</div></details>';
+
+        html += '<details class="rrpg-details-group"><summary>Investimentos</summary><div class="rrpg-details-content">';
+        if(!state.finance.investments.length) html += '<div class="rrpg-empty">Sem registros.</div>';
+        state.finance.investments.forEach(i => { html += '<div class="rrpg-list-row"><div class="nm">' + esc(i.name) + '</div><div class="vv pos">' + brl(i.amount) + '</div><button class="rrpg-shop-del" data-del-invest="' + i.id + '">✕</button></div>'; });
+        html += '</div></details>';
+
+        html += '</div><div class="rrpg-card"><div class="rrpg-section-label" style="margin-bottom:10px">Backup Geral</div><div class="rrpg-backup-row"><button class="rrpg-outline-btn" id="export-btn">⬇️ Exportar JSON</button><button class="rrpg-outline-btn" id="import-btn">⬆️ Importar JSON</button></div><input type="file" id="import-file-input" accept="application/json" style="display:none"></div>';
+      }
+    }
+
+    html += '<div class="rrpg-navbar">' +
+      '<button class="' + (activeTab==='personagem'?'active':'') + '" data-tab="personagem"><span class="ic">🎮</span>Personagem</button>' +
+      '<button class="' + (activeTab==='missoes'?'active':'') + '" data-tab="missoes"><span class="ic">📜</span>Missões</button>' +
+      '<button class="' + (activeTab==='financeiro'?'active':'') + '" data-tab="financeiro"><span class="ic">💰</span>Financeiro</button></div>';
+
+    const root = document.getElementById('app');
+    root.innerHTML = html;
+    bindEvents(root);
+    // Se estivermos na aba financeiro -> renderiza os gráficos após o DOM ser atualizado
+    if (activeTab === 'financeiro') {
+      if (finSubTab === 'resumo') setTimeout(renderFinanceOverviewChart, 60);
+      if (finSubTab === 'relatorios') setTimeout(renderFinanceChart, 60);
+    }
+  }
+
+  function bindEvents(root){
+    // Navbar e Globais
+    root.querySelectorAll('.rrpg-navbar [data-tab]').forEach(el => { el.onclick = () => { activeTab = el.getAttribute('data-tab'); render(); }; });
+    root.querySelectorAll('[data-theme-pick]').forEach(el => { el.onclick = () => { state.settings.theme = el.getAttribute('data-theme-pick'); persist(); render(); }; });
+    const bClose = root.querySelector('#banner-close'); if(bClose) bClose.onclick = () => { banner = null; render(); };
+
+    // --- ABA PERSONAGEM ---
+    if (activeTab === 'personagem') {
+      const cName = root.querySelector('#char-name'); if (cName) cName.onblur = (e) => { state.character.name = e.target.innerText.trim() || state.character.name; persist(); };
+      const rBtn = root.querySelector('#rest-btn'); if (rBtn) rBtn.onclick = handleRest;
+      const sShift = root.querySelector('#start-shift-btn'); if (sShift) sShift.onclick = handleStartShift;
+      const eShift = root.querySelector('#end-shift-btn'); if (eShift) eShift.onclick = handleEndShift;
+      
+      const gGear = root.querySelector('#goals-gear'); if (gGear) gGear.onclick = () => { goalsEditOpen = !goalsEditOpen; render(); };
+      const sGoals = root.querySelector('#save-goals-btn'); if (sGoals) sGoals.onclick = () => { state.goals.daily = { metric: root.querySelector('#daily-metric').value, target: Math.max(1, parseInt(root.querySelector('#daily-target').value)||1), reward: Math.max(0, parseInt(root.querySelector('#daily-reward').value)||0) }; state.goals.weekly = { metric: root.querySelector('#weekly-metric').value, target: Math.max(1, parseInt(root.querySelector('#weekly-target').value)||1), reward: Math.max(0, parseInt(root.querySelector('#weekly-reward').value)||0) }; persist(); goalsEditOpen = false; render(); };
+      const cDaily = root.querySelector('#claim-daily-btn'); if (cDaily) cDaily.onclick = handleClaimDaily;
+      const cWeekly = root.querySelector('#claim-weekly-btn'); if (cWeekly) cWeekly.onclick = handleClaimWeekly;
+
+      root.querySelectorAll('[data-app]').forEach(el => { el.onclick = (e) => { if (e.target.closest('.rrpg-chip-del')) return; selectedApp = el.getAttribute('data-app'); render(); }; });
+      root.querySelectorAll('.rrpg-chip-del').forEach(el => { el.onclick = (e) => { e.stopPropagation(); const id = el.getAttribute('data-del'); state.apps = state.apps.filter(a => a.id !== id); if(selectedApp===id) selectedApp=state.apps.length?state.apps[0].id:null; persist(); render(); }; });
+      
+      const toggleApp = root.querySelector('#add-app-toggle'); if (toggleApp) toggleApp.onclick = () => { newAppOpen = !newAppOpen; const box=root.querySelector('#new-app-container'); if(box) box.style.display = newAppOpen?'flex':'none'; };
+      root.querySelectorAll('[data-swatch]').forEach(el => { el.onclick = () => { newAppColor = el.getAttribute('data-swatch'); render(); }; });
+      
+      const sApp = root.querySelector('#save-app-btn'); 
+      if (sApp) sApp.onclick = () => { const nm = root.querySelector('#new-app-name').value.trim(); if(nm){ state.apps.push({id:uid(), name:nm, color:newAppColor}); selectedApp=state.apps[state.apps.length-1].id; newAppOpen=false; persist(); render(); } };
+
+      const rMinus = root.querySelector('#routes-minus'); if (rMinus) rMinus.onclick = () => { routes = Math.max(1, routes-1); const lbl=root.querySelector('#routes-counter-label'); if(lbl) lbl.innerText=routes; };
+      const rPlus = root.querySelector('#routes-plus'); if (rPlus) rPlus.onclick = () => { routes += 1; const lbl=root.querySelector('#routes-counter-label'); if(lbl) lbl.innerText=routes; };
+      
+      const lBtn = root.querySelector('#log-route-btn'); 
+      if (lBtn) {
+        lBtn.onclick = () => {
+          const vField = root.querySelector('#value-input'); const kField = root.querySelector('#km-input'); const eField = root.querySelector('#elev-input');
+          valueInput = vField ? vField.value : ""; kmInput = kField ? kField.value : ""; elevInput = eField ? eField.value : "";
+          handleLogRoute();
+        };
+      }
+    }
+
+    // --- ABA MISSÕES ---
+    if (activeTab === 'missoes') {
+      root.querySelectorAll('[data-msubtab]').forEach(el => el.onclick = () => { missionSubTab = el.getAttribute('data-msubtab'); render(); });
+      root.querySelectorAll('[data-mcat]').forEach(el => el.onclick = (e) => { if (e.target.closest('[data-del-mission-cat]')) return; missionFilterCat = el.getAttribute('data-mcat'); render(); });
+      root.querySelectorAll('[data-del-mission-cat]').forEach(el => el.onclick = (e) => { e.stopPropagation(); const id = el.getAttribute('data-del-mission-cat'); if (confirm('Excluir esta categoria de missão?')) { removeMissionCategory(id); render(); } });
+      root.querySelectorAll('[data-complete-mission]').forEach(el => el.onclick = () => handleCompleteMission(el.getAttribute('data-complete-mission')));
+      root.querySelectorAll('[data-del-mission]').forEach(el => el.onclick = () => { state.missions = state.missions.filter(m => m.id !== el.getAttribute('data-del-mission')); persist(); render(); });
+      root.querySelectorAll('[data-claim-achieve]').forEach(el => el.onclick = () => handleClaimManualAchievement(el.getAttribute('data-claim-achieve')));
+      
+      root.querySelectorAll('[data-redeem]').forEach(el => el.onclick = () => { const id=el.getAttribute('data-redeem'); const r=state.rewards.find(x=>x.id===id); if(r && state.character.gold>=r.cost){ state.character.gold-=r.cost; persist(); pushToast({title:"Resgatado!", sub:r.name}); render(); } });
+      root.querySelectorAll('[data-del-reward]').forEach(el => el.onclick = () => { state.rewards = state.rewards.filter(r => r.id !== el.getAttribute('data-del-reward')); persist(); render(); });
+      
+      const aReward = root.querySelector('#add-reward-btn');
+      if (aReward) aReward.onclick = () => { const nm = root.querySelector('#new-reward-name').value.trim(); const cs = parseInt(root.querySelector('#new-reward-cost').value)||0; if(nm&&cs>0){ state.rewards.push({id:uid(), name:nm, cost:cs}); persist(); render(); } };
+
+      root.querySelectorAll('[data-cswatch]').forEach(el => el.onclick = () => { newCatColor = el.getAttribute('data-cswatch'); render(); });
+      const aCat = root.querySelector('#add-cat-btn');
+      if (aCat) aCat.onclick = () => { const nm = root.querySelector('#new-cat-name').value.trim(); if(nm){ state.missionCategories.push({id:'cat_'+uid(), name:nm, color:newCatColor}); persist(); render(); } };
+
+      const aMis = root.querySelector('#add-mission-btn');
+      if (aMis) aMis.onclick = () => { const title = root.querySelector('#new-mission-title').value.trim(); const cat = root.querySelector('#new-mission-cat').value; const xp = parseInt(root.querySelector('#new-mission-xp').value)||10; const gold = parseInt(root.querySelector('#new-mission-gold').value)||5; const difficulty = root.querySelector('#new-mission-difficulty').value || 'fácil'; const period = root.querySelector('#new-mission-period').value || 'diária'; if(title){ state.missions.push({id:uid(), title, categoryId:cat, xp, gold, lastCompletedDate:null, difficulty, period, type:'standard', progress:0, target:1}); persist(); render(); } };
+    }
+
+    // --- ABA FINANCEIRO ---
+    if (activeTab === 'financeiro') {
+      root.querySelectorAll('[data-fintab]').forEach(el => el.onclick = () => { finSubTab = el.getAttribute('data-fintab'); render(); });
+      
+      root.querySelectorAll('[data-fcat-color]').forEach(el => el.onclick = () => { newFinanceCatColor = el.getAttribute('data-fcat-color'); render(); });
+
+      const aFinanceCat = root.querySelector('#add-finance-cat-btn');
+      if (aFinanceCat) {
+        aFinanceCat.onclick = () => {
+          const name = root.querySelector('#new-finance-cat-name').value.trim();
+          if (name) {
+            if (addFinanceCategory(name, newFinanceCatColor)) {
+              root.querySelector('#new-finance-cat-name').value = '';
+              pushToast({ title: 'Categoria criada' });
+              render();
+            }
+          }
+        };
+      }
+
+      const aIncome = root.querySelector('#add-income-btn');
+      if (aIncome) {
+        aIncome.onclick = () => {
+          const desc = root.querySelector('#new-income-desc').value.trim();
+          const amount = parseFloat(root.querySelector('#new-income-amount').value.replace(",","."))||0;
+          if(desc && amount > 0){ state.finance.incomes.unshift({id:uid(), date:new Date().toISOString(), description:desc, amount:amount, category:'Outras'}); state.character.saldo = (state.character.saldo||0) + amount; persist(); pushToast({title:"Receita registrada"}); render(); }
+        };
+      }
+
+      const aExpense = root.querySelector('#add-expense-btn');
+      if (aExpense) {
+        aExpense.onclick = () => {
+          const desc = root.querySelector('#new-expense-desc').value.trim();
+          const amount = parseFloat(root.querySelector('#new-expense-amount').value.replace(",","."))||0;
+          const category = root.querySelector('#new-expense-category').value.trim() || 'Outros';
+          if(desc && amount > 0){ state.character.saldo -= amount; state.expenses.unshift({id:uid(), date:new Date().toISOString(), description:desc, amount:amount, category}); persist(); pushToast({title:"Gasto registrado"}); maybeAwardSavingsGoalReward(); render(); }
+        };
+      }
+
+      const aBill = root.querySelector('#add-bill-btn');
+      if (aBill) {
+        aBill.onclick = () => {
+          const name = root.querySelector('#new-bill-name').value.trim();
+          const amount = parseFloat(root.querySelector('#new-bill-amount').value.replace(",","."))||0;
+          const category = root.querySelector('#new-bill-category').value.trim() || 'Outros';
+          if(name && amount > 0){ state.finance.bills.unshift({id:uid(), name, amount, category, date:new Date().toISOString()}); persist(); pushToast({title:"Conta cadastrada"}); maybeAwardSavingsGoalReward(); render(); }
+        };
+      }
+
+      const savingsGoalGear = root.querySelector('#savings-goal-gear');
+      if (savingsGoalGear) {
+        savingsGoalGear.onclick = () => { savingsGoalEditOpen = !savingsGoalEditOpen; render(); };
+      }
+
+      const saveSavingsGoal = root.querySelector('#save-savings-goal-btn');
+      if (saveSavingsGoal) {
+        saveSavingsGoal.onclick = () => {
+          const value = parseFloat(root.querySelector('#savings-goal-input').value.replace(",",".")) || 0;
+          state.finance.savingsGoal = Math.max(0, value);
+          savingsGoalEditOpen = false;
+          persist(); pushToast({title:"Meta atualizada"}); maybeAwardSavingsGoalReward(); render();
+        };
+      }
+
+      const saveMonthlyBudget = root.querySelector('#save-monthly-budget-btn');
+      if (saveMonthlyBudget) {
+        saveMonthlyBudget.onclick = () => {
+          const value = parseFloat(root.querySelector('#monthly-budget-input').value.replace(",",".")) || 0;
+          state.finance.monthlyBudget = Math.max(0, value);
+          persist(); pushToast({title:"Orçamento atualizado"}); render();
+        };
+      }
+
+      const aAccount = root.querySelector('#add-account-btn');
+      if (aAccount) {
+        aAccount.onclick = () => {
+          const name = root.querySelector('#new-account-name').value.trim();
+          const balance = parseFloat(root.querySelector('#new-account-balance').value.replace(",","."))||0;
+          if(name){ state.finance.bankAccounts.push({id:uid(), name, balance}); persist(); pushToast({title:"Conta Bancária cadastrada"}); render(); }
+        };
+      }
+
+      const aCard = root.querySelector('#add-card-btn');
+      if (aCard) {
+        aCard.onclick = () => {
+          const name = root.querySelector('#new-card-name').value.trim();
+          const limit = parseFloat(root.querySelector('#new-card-limit').value.replace(",","."))||0;
+          const used = parseFloat(root.querySelector('#new-card-used').value.replace(",","."))||0;
+          if(name){ state.finance.cards.push({id:uid(), name, limit, used}); persist(); pushToast({title:"Cartão cadastrado"}); render(); }
+        };
+      }
+
+      const aInvest = root.querySelector('#add-invest-btn');
+      if (aInvest) {
+        aInvest.onclick = () => {
+          const name = root.querySelector('#new-invest-name').value.trim();
+          const amount = parseFloat(root.querySelector('#new-invest-amount').value.replace(",","."))||0;
+          if(name){ state.finance.investments.push({id:uid(), name, amount, description:''}); persist(); pushToast({title:"Investimento cadastrado"}); render(); }
+        };
+      }
+
+      root.querySelectorAll('[data-del-finance-cat]').forEach(el => el.onclick = (e) => { e.stopPropagation(); const id = el.getAttribute('data-del-finance-cat'); if (confirm('Excluir esta categoria financeira?')) { removeFinanceCategory(id); render(); } });
+      root.querySelectorAll('[data-del-route]').forEach(el => el.onclick = () => { if(!confirm("Remover rota?")) return; const id = el.getAttribute('data-del-route'); const r = state.history.find(x=>x.id===id); if(r){ state.character.saldo-=r.value; state.character.gold=Math.max(0, state.character.gold-r.gold); state.character.xp=Math.max(0, state.character.xp-r.xp); state.history=state.history.filter(x=>x.id!==id); persist(); render(); } });
+      root.querySelectorAll('[data-del-income]').forEach(el => el.onclick = () => { const id = el.getAttribute('data-del-income'); const item = state.finance.incomes.find(x=>x.id===id); if(item){ state.character.saldo = Math.max(0, (state.character.saldo||0) - item.amount); } state.finance.incomes = state.finance.incomes.filter(x=>x.id!==id); persist(); render(); });
+      root.querySelectorAll('[data-del-expense]').forEach(el => el.onclick = () => { const id = el.getAttribute('data-del-expense'); const x = state.expenses.find(e=>e.id===id); if(x){ state.character.saldo+=x.amount; state.expenses=state.expenses.filter(e=>e.id!==id); persist(); render(); } });
+      root.querySelectorAll('[data-del-bill]').forEach(el => el.onclick = () => { state.finance.bills = state.finance.bills.filter(x=>x.id!==el.getAttribute('data-del-bill')); persist(); render(); });
+      root.querySelectorAll('[data-del-account]').forEach(el => el.onclick = () => { state.finance.bankAccounts = state.finance.bankAccounts.filter(x=>x.id!==el.getAttribute('data-del-account')); persist(); render(); });
+      root.querySelectorAll('[data-del-card]').forEach(el => el.onclick = () => { state.finance.cards = state.finance.cards.filter(x=>x.id!==el.getAttribute('data-del-card')); persist(); render(); });
+      root.querySelectorAll('[data-del-invest]').forEach(el => el.onclick = () => { state.finance.investments = state.finance.investments.filter(x=>x.id!==el.getAttribute('data-del-invest')); persist(); render(); });
+
+      const expImg = root.querySelector('#export-img-btn'); if (expImg) expImg.onclick = handleExportImage;
+      const historyFilterEl = root.querySelector('#history-filter-app'); if (historyFilterEl) historyFilterEl.onchange = (e) => { historyFilterApp = e.target.value; render(); };
+      
+      const expJson = root.querySelector('#export-btn'); if(expJson) expJson.onclick = () => { const dataStr = JSON.stringify(state, null, 2); const blob = new Blob([dataStr], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'rota-rpg-backup-' + todayStr() + '.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 1000); };
+      const impJson = root.querySelector('#import-btn'); const impInput = root.querySelector('#import-file-input'); if(impJson && impInput) { impJson.onclick = () => impInput.click(); impInput.onchange = (e) => { const file = e.target.files[0]; if(!file)return; const reader = new FileReader(); reader.onload = function(ev){ try { stopShiftTimer(); state = migrateState(JSON.parse(ev.target.result)); if (state.currentShift) startShiftTimer(); selectedApp = state.apps.length ? state.apps[0].id : null; persist(); pushToast({ title: "Backup importado!" }); render(); } catch(err){ alert('Arquivo inválido.'); } }; reader.readAsText(file); e.target.value = ''; }; }
+    }
+  }
+
+  if (state.character.saldo === undefined) state.character.saldo = 0;
+  if (state.currentShift) startShiftTimer();
+  render();
+})();
+</script>
+</body>
+</html>
